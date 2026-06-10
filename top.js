@@ -2249,55 +2249,20 @@
       });
     }
 
-    // Clear persistent jackpots if no patterns are currently active
-    const activeCNS = enabledPatternsLt.cns && getLightningConsecutiveNumbers(recentNumbers).triggerSet.size > 0;
-    const activeZero = enabledPatternsLt.zero && getZeroRuleJackpotNumbers(recentNumbers).length > 0;
-    const activeRep = enabledPatternsLt.rep && getLightningPatternNumbers(recentNumbers).length > 0;
-    const activePref = enabledPatternsLt.pref && getLightningPreferenceNumbers(recentNumbers).length > 0;
+    // Bypassed local calculations. The Lightning predictions are computed securely server-side.
+    let finalHighStakeNumbersLt = [];
+    let jackpotNumbersLt = [];
+    let combinedPatternNumbersLt = [];
+    let combinedDuplicatesLt = new Set();
+    let isWaitRoundLt = true;
 
-    // Immediately clean up inactive pattern targets to avoid showing stale JP numbers
-    if (!activeCNS) {
-      persistentJackpotsLt = persistentJackpotsLt.filter(jp => jp.source !== "CNS");
+    if (msg.lightning) {
+      finalHighStakeNumbersLt = msg.lightning.highStakeNumbers || [];
+      jackpotNumbersLt = msg.lightning.jackpotNumbers || [];
+      combinedPatternNumbersLt = msg.lightning.patternNumbers || [];
+      combinedDuplicatesLt = new Set(msg.lightning.goldenRingNumbers || []);
+      isWaitRoundLt = !!msg.lightning.isWaitRound;
     }
-    if (!activeRep) {
-      persistentJackpotsLt = persistentJackpotsLt.filter(jp => jp.source !== "REP");
-    }
-
-    const anyPatternActive = activeCNS || activeZero || activeRep || activePref;
-    if (!anyPatternActive) {
-      persistentJackpotsLt = [];
-    }
-
-    // If only PREF is active, skip recommendations and force WAIT for this round.
-    const prefOnlyWaitGate = activePref && !activeCNS && !activeZero && !activeRep;
-
-    // Lightning JP scoring:
-    // +20% for each active pattern source (ZERO/REP/CNS/PREF), +20% if also hot.
-    let finalHighStakeNumbersLt = prefOnlyWaitGate ? [] : buildLightningJackpotNumbers(recentNumbers, favoriteNumbers, currentWinner);
-    const jackpotNumbersLt = finalHighStakeNumbersLt.map(item => {
-      if (item && typeof item === "object" && item.number !== undefined) {
-        return String(item.number);
-      }
-      return String(item);
-    });
-
-    // Lightning tab recommended plays: Cover Lightning jackpot numbers and their 3 wheel neighbors
-    const zoneStrategyLt = buildZoneFromAnchors(jackpotNumbersLt);
-    let combinedPatternNumbersLt = prefOnlyWaitGate ? [] : [...zoneStrategyLt.zoneNumbers];
-    const combinedDuplicatesLt = prefOnlyWaitGate ? new Set() : zoneStrategyLt.overlapSet;
-
-    // Add preference mapping numbers to standard plays if enabled
-    if (!prefOnlyWaitGate && enabledPatternsLt.pref) {
-      const prefNums = getLightningPreferenceNumbers(recentNumbers);
-      prefNums.forEach(num => {
-        const numStr = String(num);
-        if (!combinedPatternNumbersLt.includes(numStr)) {
-          combinedPatternNumbersLt.push(numStr);
-        }
-      });
-    }
-
-    const isWaitRoundLt = !recentNumbers || recentNumbers.length < 4 || combinedPatternNumbersLt.length === 0;
     const isWaitRound = !recentNumbers || recentNumbers.length < 4 || !effectiveBetFavorites || effectiveBetFavorites.length === 0 || !zoneStrategy.overlapSet || zoneStrategy.overlapSet.size === 0 || maxBaseScore < 50;
     const standardGoldNumbers = zoneStrategy.overlapSet ? Array.from(zoneStrategy.overlapSet).map(String) : [];
     const lightningGoldNumbers = combinedDuplicatesLt ? Array.from(combinedDuplicatesLt).map(String) : [];

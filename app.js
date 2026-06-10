@@ -206,10 +206,8 @@ const WHEEL_ORDER = [
   "0", "32", "15", "19", "4", "21", "2", "25", "17", "34", "6", "27", "13", "36", "11", "30", "8", "23", "10", "5", "24", "16", "33", "1", "20", "14", "31", "9", "22", "18", "29", "7", "28", "12", "35", "3", "26"
 ];
 
-const ZRA_STRATEGY_CORE = window.ZenRouletteStrategy || null;
-const zraStandardJackpotEngine = ZRA_STRATEGY_CORE
-  ? ZRA_STRATEGY_CORE.createStandardJackpotEngine({ wheelOrder: WHEEL_ORDER })
-  : null;
+const ZRA_STRATEGY_CORE = null;
+const zraStandardJackpotEngine = null;
 
 let betNumbers = [];
 let betFavorites = [];
@@ -222,6 +220,25 @@ let observedElement = null;
 let mutationObserver = null;
 let pollTimer = null;
 let observeRetryTimer = null;
+
+// API Strategy Engines state variables
+let persistentJackpots = [];
+let lastWinnerForJackpots = null;
+let persistentJackpotsLt = [];
+let lastWinnerForJackpotsLt = null;
+let lastCnsHitWinnerLt = null;
+let lastObservedTableType = "UNKNOWN";
+
+const defaultPrefMappingLt = {
+  "0": ["10"], "1": ["3"], "2": ["11"], "3": ["1", "21"], "4": ["10"], "5": ["8"], "6": ["36"],
+  "7": ["17", "27"], "8": ["18", "28"], "9": ["23"], "10": ["4", "0", "20", "30"], "11": ["2", "8", "13"],
+  "12": ["36"], "13": ["31", "22"], "14": ["1", "9"], "15": ["1"], "16": ["23", "32"], "17": ["7", "27"],
+  "18": ["8", "28", "7", "9"], "19": ["9", "29"], "20": ["10", "30", "4", "0"], "21": ["27", "31", "12"],
+  "22": ["13"], "23": ["32"], "24": ["22", "36"], "25": ["29"], "26": ["34", "3", "0", "19"],
+  "27": ["21", "35"], "28": ["8", "18", "7", "9"], "29": ["9", "19"], "30": ["8", "11", "22", "20"],
+  "31": ["13"], "32": ["23"], "33": ["6"], "34": ["25", "26", "27", "13"], "35": ["27", "32", "19"],
+  "36": ["24"]
+};
 let heuristicCache = null;
 let roundHistory = [];
 let lastDashboardDebugKey = null;
@@ -1401,130 +1418,14 @@ function calculateJackpotScore(numStr, recentNumbers, favoriteNumbers, wheelOrde
 }
 
 function buildJackpotNumbersFromRules(recentNumbers) {
-  const last4 = (recentNumbers || []).slice(0, 4).map((n) => String(n));
-  if (last4.length < 4) {
-    return [];
-  }
-  const currentWinner = last4[0];
-  const favoriteNumbers = getFavoriteNumbers(recentNumbers);
-
-  // Update rounds ONLY when a new winner/round actually occurs
-  if (currentWinner !== lastWinnerForJackpots) {
-    lastWinnerForJackpots = currentWinner;
-    
-    // Decrement rounds for existing persistent jackpots
-    persistentJackpots.forEach(jp => {
-      jp.remainingRounds -= 1;
-    });
-    // Filter out expired jackpots (remainingRounds <= 0)
-    persistentJackpots = persistentJackpots.filter(jp => jp.remainingRounds > 0);
-  }
-
-  // Check if any existing jackpot number (or its +/-1 neighbors) is in the new golden rings
-  // If so, reset its remaining rounds back to 4 to extend its presentation
-  const overlapCounts = getOverlapScoresFromLast4(last4);
-  const goldenRingOnly = Object.keys(overlapCounts)
-    .filter((n) => (overlapCounts[String(n)] || 0) > 1 && String(n) !== String(currentWinner))
-    .sort((a, b) => (overlapCounts[String(b)] || 0) - (overlapCounts[String(a)] || 0));
-
-  if (zraStandardJackpotEngine) {
-    return zraStandardJackpotEngine.build({
-      recentNumbers,
-      favoriteNumbers,
-      currentWinner,
-      goldenRings: goldenRingOnly
-    });
-  }
-
-  persistentJackpots.forEach(jp => {
-    if (isJackpotActiveInGolden(jp.number, goldenRingOnly, WHEEL_ORDER)) {
-      jp.remainingRounds = 4;
-    }
-  });
-
-  // Calculate scores for all 37 numbers (excluding the current winner)
-  const scoredCandidates = [];
-  WHEEL_ORDER.forEach(numStr => {
-    if (numStr === currentWinner) return;
-
-    const baseScore = calculateJackpotScore(numStr, recentNumbers, favoriteNumbers, WHEEL_ORDER, get3Neighborhood);
-    
-    // Add persistence bonus if it is already in persistentJackpots and remainingRounds > 0
-    const existing = persistentJackpots.find(jp => jp.number === numStr);
-    const persistenceBonus = existing && existing.remainingRounds > 0 ? 20 : 0;
-    
-    const totalScore = baseScore + persistenceBonus;
-    scoredCandidates.push({
-      number: numStr,
-      baseScore: baseScore,
-      totalScore: totalScore,
-      isPersistent: !!existing
-    });
-  });
-
-  // Sort candidates by total score descending, breaking ties with baseScore, then wheel order
-  scoredCandidates.sort((a, b) => {
-    if (b.totalScore !== a.totalScore) {
-      return b.totalScore - a.totalScore;
-    }
-    if (b.baseScore !== a.baseScore) {
-      return b.baseScore - a.baseScore;
-    }
-    return WHEEL_ORDER.indexOf(a.number) - WHEEL_ORDER.indexOf(b.number);
-  });
-
-  // Take the top 4 candidates
-  const top4Candidates = scoredCandidates.slice(0, 4);
-
-  // Sync back to persistentJackpots
-  const newPersistent = [];
-  top4Candidates.forEach(candidate => {
-    const existing = persistentJackpots.find(jp => jp.number === candidate.number);
-    if (existing) {
-      newPersistent.push({
-        number: candidate.number,
-        remainingRounds: existing.remainingRounds,
-        score: candidate.baseScore
-      });
-    } else {
-      newPersistent.push({
-        number: candidate.number,
-        remainingRounds: 4,
-        score: candidate.baseScore
-      });
-    }
-  });
-
-  persistentJackpots = newPersistent;
-
-  return persistentJackpots.slice(0, 4);
+  return highStakeNumbers || [];
 }
 
 function buildLocalRecommendation(recentNumbers, favoriteNumbers) {
-  // Strategy: last 4 winners as anchors + each anchor's +/-3 wheel neighbors.
-  // If we don't have enough recent rounds, keep recommendation empty.
-  if (!Array.isArray(recentNumbers) || recentNumbers.length < 4) {
-    return {
-      betFavorites: [],
-      betNumbers: [],
-      highStakeNumbers: buildJackpotNumbersFromRules(recentNumbers)
-    };
-  }
-
-  const localBetFavorites = recentNumbers.slice(0, 4).map((n) => String(n));
-  let localBetNumbers = [];
-  localBetFavorites.forEach((anchor) => {
-    localBetNumbers.push(String(anchor));
-    localBetNumbers = localBetNumbers.concat(get3Neighborhood(anchor));
-  });
-  localBetNumbers = uniquePreserveOrder(localBetNumbers);
-
-  const localHighStake = buildJackpotNumbersFromRules(recentNumbers);
-
   return {
-    betFavorites: localBetFavorites,
-    betNumbers: localBetNumbers,
-    highStakeNumbers: localHighStake
+    betFavorites: betFavorites || [],
+    betNumbers: betNumbers || [],
+    highStakeNumbers: highStakeNumbers || []
   };
 }
 
@@ -1706,7 +1607,7 @@ function parseBalanceText(text) {
   return isNaN(num) ? null : num;
 }
 
-function sendDashboardUi(recentNumbers, favoriteNumbers) {
+function sendDashboardUi(recentNumbers, favoriteNumbers, lightning = null) {
   const now = Date.now();
   if (now - lastDashboardSentAt < 120) {
     return;
@@ -1720,6 +1621,7 @@ function sendDashboardUi(recentNumbers, favoriteNumbers) {
     betFavorites,
     betNumbers,
     highStakeNumbers,
+    lightning,
     dealer: getScrapedDealerName(),
     tableType: detectTableType(),
     multiplierHits: multiplierHitCount,
@@ -1771,7 +1673,7 @@ function updatePlay(currentWinner) {
   highlightBetNumbers(false);
 }
 
-function updateDashboardInstant() {
+async function updateDashboardInstant() {
   const recentNumbers = getRecentNumbers();
   logDashboardNumbers(recentNumbers);
   const favoriteNumbers = getFavoriteNumbers(recentNumbers);
@@ -1781,42 +1683,74 @@ function updateDashboardInstant() {
     return;
   }
 
-  const local = buildLocalRecommendation(recentNumbers, favoriteNumbers);
-  betFavorites = local.betFavorites;
-  betNumbers = local.betNumbers;
-  highStakeNumbers = buildJackpotNumbersFromRules(recentNumbers);
-  highlightBetNumbers(true);
+  const currentTable = detectTableType();
+  if (currentTable !== lastObservedTableType) {
+    lastObservedTableType = currentTable;
+    persistentJackpots = [];
+    lastWinnerForJackpots = null;
+    persistentJackpotsLt = [];
+    lastWinnerForJackpotsLt = null;
+    lastCnsHitWinnerLt = null;
+  }
 
-  sendDashboardUi(recentNumbers, favoriteNumbers);
+  let enabledPatternsLt = { zero: true, rep: true, cns: true, pref: true };
+  let customPrefMappingLt = {};
+  try {
+    const res = await chrome.storage.local.get(["enabledPatternsLt", "customPrefMappingLt"]);
+    if (res.enabledPatternsLt) enabledPatternsLt = res.enabledPatternsLt;
+    if (res.customPrefMappingLt) customPrefMappingLt = res.customPrefMappingLt;
+  } catch (_e) {}
 
-  // Keep server model as optional refinement without blocking instant UI updates.
+  const lastNum = String(recentNumbers[0]);
+  const preferenceNumbers = enabledPatternsLt.pref
+    ? (customPrefMappingLt[lastNum] !== undefined ? customPrefMappingLt[lastNum] : (defaultPrefMappingLt[lastNum] || []))
+    : [];
+
+  const engineState = {
+    persistentJackpots,
+    lastWinnerForJackpots,
+    persistentJackpotsLt,
+    lastWinnerForJackpotsLt,
+    lastCnsHitWinnerLt
+  };
+
   safeSendRuntimeMessage({
     type: "api",
     data: {
       action: "zrr",
-      recentNumbers,
-      favoriteNumbers
+      recentNumbers: recentNumbers.join(","),
+      favoriteNumbers: favoriteNumbers.join(","),
+      preferenceNumbers: preferenceNumbers.join(","),
+      enabledPatterns: JSON.stringify(enabledPatternsLt),
+      engineState: JSON.stringify(engineState),
+      wheelOrder: WHEEL_ORDER.join(",")
     }
   }, (msg) => {
     if (!msg || msg.success !== true) {
+      betFavorites = [];
+      betNumbers = [];
+      highStakeNumbers = [];
+      highlightBetNumbers(false);
+      sendDashboardUi(recentNumbers, favoriteNumbers);
       return;
     }
 
-    const nextBetNumbers = Array.isArray(msg.betNumbers) ? msg.betNumbers : betNumbers;
-    const nextBetFavorites = (Array.isArray(msg.betFavorites) && msg.betFavorites.length > 0)
-      ? msg.betFavorites
-      : (nextBetNumbers.length > 0 ? [String(nextBetNumbers[0])] : betFavorites);
-    const nextHighStake = buildJackpotNumbersFromRules(recentNumbers);
-
-    if (nextBetNumbers.length === 0) {
-      return;
+    if (msg.engineState) {
+      persistentJackpots = msg.engineState.persistentJackpots || [];
+      lastWinnerForJackpots = msg.engineState.lastWinnerForJackpots;
+      persistentJackpotsLt = msg.engineState.persistentJackpotsLt || [];
+      lastWinnerForJackpotsLt = msg.engineState.lastWinnerForJackpotsLt;
+      lastCnsHitWinnerLt = msg.engineState.lastCnsHitWinnerLt;
     }
 
-    betFavorites = nextBetFavorites;
-    betNumbers = nextBetNumbers;
-    highStakeNumbers = nextHighStake;
+    if (msg.standard) {
+      betFavorites = msg.standard.betFavorites || [];
+      betNumbers = msg.standard.betNumbers || [];
+      highStakeNumbers = msg.standard.highStakeNumbers || [];
+    }
+
     highlightBetNumbers(true);
-    sendDashboardUi(recentNumbers, favoriteNumbers);
+    sendDashboardUi(recentNumbers, favoriteNumbers, msg.lightning || null);
   });
 }
 

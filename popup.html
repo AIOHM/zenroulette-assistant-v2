@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZenRoulette Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #071505;
+      --card: #112410;
+      --text-main: #d6e8ca;
+      --text-secondary: #a4d29b;
+      --muted: #799a71;
+      --border: #22441b;
+      --input-bg: #0b1a0a;
+      --bg-secondary: #0c1f0b;
+      --bg-hover: #163013;
+      --shadow: 0 10px 30px rgba(7, 21, 5, 0.65);
+      --shadow-hover: 0 16px 36px rgba(7, 21, 5, 0.85);
+      --accent: #54b435; /* Accent/Hover/Light Green */
+      --accent-hover: #73cf53;
+      --zr-green-dark: #193f10; /* Primary Headings/Dark Green */
+      --zr-green-medium: #2a6b2a; /* Banner/Medium Green */
+      --zr-green-accent: #54b435;
+      --tab-bg: #112410;
+      --tab-hover-bg: #1a3619;
+      --tab-icon-color: var(--zr-green-accent);
+      --gap: 12px;
+      --radius: 8px;
+      --rail-width: 72px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      width: 100%;
+      min-height: 100vh;
+      max-width: 450px;
+      min-width: 320px;
+      font-size: 14px;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text-main);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 450px;
+      margin: 0 auto;
+      padding: 8px;
+      box-sizing: border-box;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .header-badge {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: currentColor;
+      background: transparent;
+      border: none;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .header-side {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 122px;
+      gap: 8px;
+    }
+
+    .session-note {
+      font-family: 'Caveat', cursive;
+      font-size: 19px;
+      line-height: 1;
+      color: rgba(255,255,255,0.85);
+      text-align: right;
+      opacity: 0.8;
+    }
+
+    .nav-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(11, 24, 10, 0.72);
+      min-width: 80px;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .record-btn {
+      position: relative;
+    }
+
+    .record-btn.hidden {
+      display: none;
+    }
+
+    .record-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ff5a5a;
+      box-shadow: 0 0 0 3px rgba(255, 90, 90, 0.18);
+      display: inline-block;
+    }
+
+    .record-btn.recording {
+      border-color: #ff7c7c;
+      box-shadow: 0 0 0 3px rgba(255, 90, 90, 0.18), 0 6px 14px rgba(255, 90, 90, 0.18);
+      background: linear-gradient(135deg, var(--tab-bg), rgba(80, 16, 16, 0.9));
+    }
+
+    .nav-note-icon {
+      position: relative;
+      width: 18px;
+      height: 16px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      flex: 0 0 auto;
+    }
+
+    .nav-note-icon::before,
+    .nav-note-icon::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      height: 1px;
+      background: rgba(255,255,255,0.55);
+    }
+
+    .nav-note-icon::before {
+      top: 5px;
+    }
+
+    .nav-note-icon::after {
+      top: 9px;
+    }
+
+    .nav-note-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+      text-align: left;
+    }
+
+    .nav-status.state-idle {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.5);
+      box-shadow: none;
+    }
+
+    .nav-status.state-live {
+      background: rgba(84, 180, 53, 0.08);
+      border-color: rgba(84, 180, 53, 0.3);
+      color: #54b435;
+      box-shadow: 0 0 10px rgba(84, 180, 53, 0.12);
+    }
+
+    .nav-status.state-win {
+      background: linear-gradient(135deg, rgba(84, 180, 53, 0.28) 0%, rgba(19, 63, 16, 0.86) 100%);
+      border-color: rgba(84, 180, 53, 0.78);
+      color: #8df06b;
+      box-shadow: 0 0 24px rgba(84, 180, 53, 0.58);
+      animation: badgePulseWinGreen 0.9s infinite alternate;
+    }
+
+    .nav-status.state-gold {
+      background: linear-gradient(135deg, rgba(255, 216, 77, 0.3) 0%, rgba(70, 54, 14, 0.86) 100%);
+      border-color: rgba(255, 216, 77, 0.8);
+      color: #ffe88a;
+      box-shadow: 0 0 24px rgba(255, 216, 77, 0.58);
+      animation: badgePulseGold 0.9s infinite alternate;
+    }
+
+    .nav-status.state-loss {
+      background: linear-gradient(135deg, rgba(255, 90, 90, 0.32) 0%, rgba(82, 19, 19, 0.88) 100%);
+      border-color: rgba(255, 90, 90, 0.78);
+      color: #ff8f8f;
+      box-shadow: 0 0 24px rgba(255, 90, 90, 0.56);
+      animation: badgePulseLoss 0.85s infinite alternate;
+    }
+
+    .nav-status.state-victory {
+      background: linear-gradient(135deg, rgba(51, 153, 255, 0.3) 0%, rgba(13, 34, 82, 0.9) 100%);
+      border-color: rgba(51, 153, 255, 0.8);
+      color: #8cc9ff;
+      box-shadow: 0 0 28px rgba(51, 153, 255, 0.62);
+      animation: badgePulseVictory 0.9s infinite alternate;
+    }
+
+    .nav-status.state-win .header-badge,
+    .nav-status.state-loss .header-badge,
+    .nav-status.state-gold .header-badge,
+    .nav-status.state-victory .header-badge {
+      text-shadow: 0 0 10px currentColor;
+      letter-spacing: 0.09em;
+    }
+
+    @keyframes badgePulseGold {
+      0% {
+        box-shadow: 0 0 10px rgba(255, 216, 77, 0.25);
+        border-color: rgba(255, 216, 77, 0.45);
+        filter: brightness(1);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(255, 216, 77, 0.86);
+        border-color: rgba(255, 216, 77, 0.95);
+        filter: brightness(1.2);
+      }
+    }
+
+    @keyframes badgePulseWinGreen {
+      0% {
+        box-shadow: 0 0 10px rgba(84, 180, 53, 0.28);
+        border-color: rgba(84, 180, 53, 0.45);
+        filter: brightness(1);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(84, 180, 53, 0.85);
+        border-color: rgba(84, 180, 53, 0.95);
+        filter: brightness(1.25);
+      }
+    }
+
+    @keyframes badgePulseLoss {
+      0% {
+        box-shadow: 0 0 8px rgba(255, 90, 90, 0.24);
+        border-color: rgba(255, 90, 90, 0.35);
+        filter: brightness(1);
+      }
+      100% {
+        box-shadow: 0 0 34px rgba(255, 90, 90, 0.85);
+        border-color: rgba(255, 90, 90, 0.95);
+        filter: brightness(1.28);
+      }
+    }
+
+    @keyframes badgePulseVictory {
+      0% {
+        box-shadow: 0 0 12px rgba(51, 153, 255, 0.33);
+        border-color: rgba(51, 153, 255, 0.45);
+        filter: brightness(1);
+      }
+      100% {
+        box-shadow: 0 0 38px rgba(51, 153, 255, 0.9);
+        border-color: rgba(51, 153, 255, 0.95);
+        filter: brightness(1.24);
+      }
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: var(--bg-secondary);
+      justify-content: space-between;
+      align-items: center;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+
+    .tab-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tab-btn {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(84, 180, 53, 0.2);
+      background: var(--tab-bg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+      padding: 0;
+    }
+
+    .tab-btn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translate(-50%, 0);
+      background: rgba(15, 23, 42, 0.95);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 10;
+      font-family: inherit;
+    }
+
+    .tab-btn:hover::after {
+      opacity: 1;
+      transform: translate(-50%, 2px);
+    }
+
+    .tab-btn:hover {
+      background: var(--tab-hover-bg);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(84, 180, 53, 0.3);
+    }
+
+    .tab-btn:active {
+      transform: translateY(0);
+    }
+
+    .tab-btn.active {
+      border-color: var(--accent);
+      box-shadow: 0 6px 14px rgba(84, 180, 53, 0.4);
+      transform: translateY(-2px);
+      background: linear-gradient(135deg, var(--tab-bg), var(--bg-hover));
+    }
+
+    .tab-letter {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--tab-icon-color);
+    }
+
+    .tab-btn.active .tab-letter {
+      color: var(--accent);
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+    }
+
+    .wheel-card {
+      background:
+        radial-gradient(140% 120% at 50% 0%, rgba(84, 180, 53, 0.12) 0%, rgba(10, 28, 9, 0.45) 45%, rgba(8, 22, 7, 0.95) 100%),
+        var(--card);
+      padding: 12px;
+      border-radius: 14px;
+      border-color: rgba(84, 180, 53, 0.35);
+      box-shadow: 0 14px 30px rgba(3, 12, 3, 0.55), inset 0 1px 0 rgba(115, 207, 83, 0.08);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card h2 {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-left: 3px solid var(--accent);
+      padding-left: 8px;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text-main);
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(84, 180, 53, 0.25);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--zr-green-medium) 0%, var(--accent) 100%);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(84, 180, 53, 0.35);
+      filter: brightness(1.1);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    .btn.secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error-box {
+      color: #ff5252;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .info-val {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .number-badge {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      text-align: center;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 13px;
+      color: white;
+      margin-right: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .number-badge.clickable {
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .number-badge.clickable:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.45);
+    }
+
+    .number-badge.red { background: #e0232a; }
+    .number-badge.black { background: #333; }
+    .number-badge.green { background: #2b741b; }
+
+    .number-badge.wait-badge {
+      background: linear-gradient(145deg, #22441b 0%, #183313 100%);
+      border: 1px solid rgba(84, 180, 53, 0.35);
+      color: #b9d8b2;
+      text-transform: uppercase;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+
+    .wheel-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 12px 0;
+      position: relative;
+    }
+
+    .dashboard-top-grid {
+      display: grid;
+      grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--rail-width);
+      gap: 0;
+      align-items: stretch;
+      min-height: 278px;
+    }
+
+    .tracked-inline {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      padding-top: 4px;
+    }
+
+    .rail-head {
+      width: calc(100% - 8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(84, 180, 53, 0.2);
+    }
+
+    .rail-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      background: rgba(84, 180, 53, 0.1);
+      box-shadow: 0 0 18px rgba(84, 180, 53, 0.16);
+    }
+
+    .rail-icon.last {
+      border-color: #54b435;
+      color: #54b435;
+    }
+
+    .rail-icon.jp {
+      border-color: #3399ff;
+      color: #3399ff;
+      background: rgba(51, 153, 255, 0.12);
+    }
+
+    .rail-icon.pattern {
+      border-color: #ffd84d;
+      color: #ffd84d;
+      background: rgba(255, 216, 77, 0.12);
+      box-shadow: 0 0 18px rgba(255, 216, 77, 0.16);
+    }
+
+    .rail-icon.gr {
+      width: auto;
+      height: 20px;
+      min-width: 28px;
+      padding: 0 6px;
+      border-radius: 4px;
+      border-color: #ffd84d;
+      color: #071505;
+      background: linear-gradient(135deg, #ffd84d 0%, #cc9900 100%);
+      box-shadow: 0 0 16px rgba(255, 216, 77, 0.22);
+      font-size: 9px;
+    }
+
+    .rail-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 176px;
+    }
+
+    .wheel-main {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-left: 1px solid rgba(84, 180, 53, 0.14);
+      border-right: 1px solid rgba(84, 180, 53, 0.14);
+      position: relative;
+      gap: 6px;
+      padding-bottom: 8px;
+    }
+
+    .gold-rail {
+      width: min(220px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding-top: 7px;
+      border-top: 1px dashed rgba(255, 204, 0, 0.18);
+    }
+
+    .gold-rail .rail-head {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      flex: 0 0 auto;
+    }
+
+    .gold-number-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      min-height: 26px;
+    }
+
+    .gold-number-row .number-badge {
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      font-size: 11px;
+      border: 1.5px solid #ffd84d;
+      box-shadow: 0 0 8px rgba(255, 216, 77, 0.42), 0 2px 5px rgba(0, 0, 0, 0.35);
+      margin: 0;
+    }
+
+    .wheel-center-chip {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      pointer-events: none;
+      z-index: 10;
+      border: 2px solid rgba(255,255,255,0.18);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+      opacity: 0;
+      transition: background 0.2s ease;
+    }
+
+    .wheel-center-chip.visible {
+      animation: chip-roll-in 0.42s cubic-bezier(0.34, 1.46, 0.64, 1) forwards;
+    }
+
+    .wheel-center-chip.jackpot {
+      animation: chip-jackpot 0.38s cubic-bezier(0.34, 1.46, 0.64, 1) forwards,
+                 chip-jackpot-pulse 1.3s ease-in-out 0.4s infinite;
+      border-color: #3399ff;
+    }
+
+    @keyframes chip-roll-in {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-180deg); }
+      70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.12) rotate(8deg); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1)    rotate(0deg); }
+    }
+
+    @keyframes chip-jackpot {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-180deg); }
+      60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.25) rotate(10deg);
+             box-shadow: 0 0 36px 16px rgba(51,153,255,0.65); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1.08) rotate(0deg);
+             box-shadow: 0 0 22px 8px rgba(51,153,255,0.45); }
+    }
+
+    @keyframes chip-jackpot-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1.08);
+                 box-shadow: 0 0 22px 8px rgba(51,153,255,0.45); }
+      50%       { transform: translate(-50%, -50%) scale(1.18);
+                 box-shadow: 0 0 42px 22px rgba(51,153,255,0.7); }
+    }
+
+    #canvas {
+      background: transparent;
+      width: min(236px, calc(100vw - 210px));
+      height: auto;
+      max-width: 236px;
+      max-height: 236px;
+    }
+
+    .tracked-inline .number-badge {
+      width: 42px;
+      height: 42px;
+      line-height: 42px;
+      font-size: 17px;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    @media (max-width: 380px) {
+      :root {
+        --rail-width: 64px;
+      }
+
+      .tracked-inline .number-badge {
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+        font-size: 15px;
+      }
+
+      #canvas {
+        width: min(212px, calc(100vw - 196px));
+      }
+    }
+
+    .recommendation-alert {
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .recommendation-alert.alert-highlight {
+      border-color: var(--accent);
+      background: rgba(84, 180, 53, 0.05);
+    }
+
+    .recommendation-alert.clickable {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .recommendation-alert.clickable:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+      color: var(--accent-hover);
+    }
+
+    .strategy-card {
+      background:
+        radial-gradient(150% 130% at 50% 0%, rgba(143, 197, 94, 0.12) 0%, rgba(19, 48, 13, 0.5) 42%, rgba(5, 14, 4, 0.98) 100%),
+        linear-gradient(180deg, rgba(16, 42, 11, 0.98) 0%, rgba(5, 15, 4, 0.99) 100%);
+      border-color: rgba(123, 176, 82, 0.28);
+      box-shadow: 0 22px 44px rgba(2, 8, 2, 0.58), inset 0 1px 0 rgba(240,255,240,0.05), inset 0 -24px 30px rgba(0,0,0,0.16);
+      padding: 14px;
+      gap: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .strategy-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(80% 40% at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%),
+        linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.025) 48%, transparent 52%, rgba(255,255,255,0.015) 100%);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .strategy-output {
+      font-size: 13px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .strategy-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .strategy-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .strategy-title-block {
+      flex: 1 1 180px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .strategy-kicker {
+      margin-bottom: 0;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(208, 238, 188, 0.8);
+    }
+
+    .strategy-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      color: #f5fff0;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.25);
+    }
+
+    .strategy-subtitle {
+      margin-top: 0;
+      max-width: 260px;
+      font-size: 13px;
+      color: rgba(218, 236, 205, 0.9);
+      line-height: 1.3;
+    }
+
+    .strategy-title-accent {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(178, 154, 72, 0.18) 0%, rgba(73, 57, 18, 0.18) 100%);
+      border: 1px solid rgba(223, 198, 108, 0.2);
+      color: rgba(246, 227, 164, 0.92);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .strategy-focus-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 8px;
+      min-width: 236px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(134, 183, 92, 0.22);
+      background: linear-gradient(180deg, rgba(22, 46, 17, 0.92) 0%, rgba(10, 25, 9, 0.96) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 22px rgba(0,0,0,0.18);
+    }
+
+    .strategy-focus-label,
+    .strategy-grid-title,
+    .strategy-lane-title {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(202, 232, 181, 0.72);
+    }
+
+    .strategy-focus-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    .strategy-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .strategy-meta-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      border: 1px solid rgba(164, 219, 130, 0.2);
+      background: rgba(84, 180, 53, 0.09);
+      color: rgba(215, 242, 202, 0.86);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .strategy-board-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background:
+        radial-gradient(120% 100% at 50% 0%, rgba(97, 152, 61, 0.14) 0%, rgba(16, 39, 12, 0.22) 46%, rgba(7, 18, 6, 0.96) 100%),
+        linear-gradient(180deg, rgba(17, 37, 13, 0.96) 0%, rgba(8, 20, 7, 0.98) 100%);
+      border: 1px solid rgba(132, 181, 89, 0.2);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -18px 22px rgba(0,0,0,0.16);
+    }
+
+    .strategy-board-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .strategy-board-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #eff9e9;
+      letter-spacing: 0.01em;
+    }
+
+    .strategy-board-note {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(244, 222, 154, 0.78);
+    }
+
+    .strategy-board {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .strategy-zero-lane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(118, 168, 80, 0.18);
+      background: linear-gradient(180deg, rgba(21, 46, 16, 0.95) 0%, rgba(9, 23, 8, 0.97) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .strategy-grid-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(118, 168, 80, 0.18);
+      background: linear-gradient(180deg, rgba(18, 39, 14, 0.97) 0%, rgba(8, 20, 7, 0.98) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .strategy-grid-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .strategy-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+    }
+
+    .strategy-row-label {
+      width: 32px;
+      flex: 0 0 auto;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: rgba(199, 236, 181, 0.58);
+    }
+
+    .strategy-badge {
+      width: 34px;
+      height: 34px;
+      line-height: 34px;
+      font-size: 14px;
+      margin: 0;
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: 0 10px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+      flex: 0 0 auto;
+    }
+
+    .strategy-focus-badge {
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      font-size: 15px;
+    }
+
+    .strategy-badge-overlap {
+      border: 2px solid #ffd84d;
+      box-shadow: 0 0 0 2px rgba(255,216,77,0.12), 0 0 18px rgba(255,216,77,0.42), 0 8px 18px rgba(0,0,0,0.22);
+    }
+
+    .strategy-badge-jackpot {
+      border: 2px solid #3399ff;
+      box-shadow: 0 0 0 2px rgba(51,153,255,0.12), 0 0 18px rgba(51,153,255,0.42), 0 8px 18px rgba(0,0,0,0.22);
+    }
+
+    .strategy-badge-empty {
+      background: rgba(255,255,255,0.025);
+      border: 1px dashed rgba(214, 236, 196, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+      opacity: 0.32;
+      color: transparent;
+    }
+
+    .strategy-legend {
+      font-size: 11px;
+      color: rgba(220, 236, 211, 0.8);
+      text-align: center;
+      line-height: 1.45;
+      padding-top: 0;
+    }
+
+    @media (max-width: 420px) {
+      .strategy-head {
+        align-items: flex-start;
+      }
+
+      .strategy-focus-panel {
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      .strategy-focus-row {
+        justify-content: flex-start;
+      }
+
+      .strategy-title {
+        font-size: 22px;
+      }
+
+      .strategy-board {
+        grid-template-columns: 46px minmax(0, 1fr);
+      }
+
+      .strategy-row-label {
+        width: 28px;
+        font-size: 8px;
+      }
+
+      .strategy-badge {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 12px;
+      }
+
+      .strategy-focus-badge {
+        width: 34px;
+        height: 34px;
+        line-height: 34px;
+      }
+    }
+
+    .french-layout-card {
+      background:
+        radial-gradient(130% 120% at 50% 0%, rgba(84, 180, 53, 0.18) 0%, rgba(7, 21, 5, 0.55) 48%, rgba(5, 16, 4, 0.96) 100%),
+        linear-gradient(180deg, rgba(17, 36, 16, 0.98) 0%, rgba(8, 22, 7, 0.98) 100%);
+      border-color: rgba(84, 180, 53, 0.25);
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .french-board-stage {
+      background: transparent !important;
+      border: 0 !important;
+      padding: 0 !important;
+      text-align: left;
+    }
+
+    .french-board-stage.clickable:hover {
+      background: transparent !important;
+      border-color: transparent !important;
+      color: inherit !important;
+    }
+
+    .french-board-stage.refreshing {
+      filter: brightness(1.08);
+      opacity: 0.9;
+      box-shadow: 0 0 0 1px rgba(84, 180, 53, 0.18), inset 0 0 0 1px rgba(84, 180, 53, 0.1);
+    }
+
+    .french-layout-board {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .french-board {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 52px;
+      gap: 8px;
+      align-items: stretch;
+      width: 100%;
+      padding: 10px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(20, 33, 17, 0.96) 0%, rgba(9, 23, 8, 0.96) 100%);
+      border: 1px solid rgba(84, 180, 53, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .french-rail {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .french-zone-label {
+      height: 100%;
+      min-height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(241, 247, 241, 0.85);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .french-zone-label.zero {
+      background: linear-gradient(180deg, rgba(0, 138, 122, 0.38), rgba(0, 112, 100, 0.28));
+      border-color: rgba(112, 235, 220, 0.18);
+      color: #d9fffb;
+    }
+
+    .french-core {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .french-number-row {
+      display: grid;
+      grid-template-columns: repeat(15, minmax(0, 1fr));
+      gap: 2px;
+      align-items: stretch;
+      min-height: 32px;
+      padding: 0;
+    }
+
+    .french-number-chip {
+      width: 100%;
+      height: 30px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      background: #343434;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+    }
+
+    .french-number-chip.red { background: #e0232a; }
+    .french-number-chip.black { background: #343434; }
+    .french-number-chip.green { background: #2b741b; }
+    .french-number-chip.covered {
+      box-shadow: 0 0 0 3px rgba(255, 216, 77, 0.28), 0 3px 8px rgba(0,0,0,0.35);
+      border-color: #ffd84d;
+    }
+    .french-number-chip.jp-hit {
+      box-shadow: 0 0 0 3px rgba(51, 153, 255, 0.25), 0 3px 8px rgba(0,0,0,0.35);
+      border-color: #3399ff;
+    }
+    .french-number-chip.overlap {
+      box-shadow: 0 0 0 3px rgba(255, 216, 77, 0.42), 0 0 14px rgba(255, 216, 77, 0.22);
+      border-color: #ffd84d;
+    }
+
+    .french-zone-band {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
+      align-items: stretch;
+      margin: 2px 0;
+    }
+
+    .french-zone-pill {
+      min-height: 56px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #efead7;
+      background: linear-gradient(180deg, rgba(79, 70, 37, 0.96), rgba(53, 45, 24, 0.96));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      text-transform: uppercase;
+    }
+
+    .french-zone-pill.zero {
+      background: linear-gradient(180deg, rgba(21, 76, 63, 0.96), rgba(16, 60, 49, 0.96));
+      color: #d9fffb;
+    }
+
+    .french-coverage-note {
+      font-size: 11px;
+      color: rgba(164, 210, 155, 0.85);
+      text-align: center;
+      line-height: 1.2;
+      padding-top: 2px;
+    }
+
+    .french-board-subtitle {
+      font-size: 11px;
+      color: rgba(233, 243, 231, 0.72);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* Hands info */
+    .hands-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hand-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--input-bg);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .hand-winner {
+      font-weight: 700;
+    }
+
+    .hand-result {
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .hand-result.win { color: var(--accent); }
+    .hand-result.loss { color: #ff5252; }
+    .hand-result.victory { color: #ffd84d; }
+    .hand-result.gold { color: #ffd84d; }
+    .hand-result.wait { color: var(--muted); }
+
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .session-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .session-controls .btn,
+    .btn-row .btn {
+      width: 100%;
+    }
+
+    .stat-box {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .stat-lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn-row .btn {
+      flex: 1;
+    }
+
+    .locked-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 16px;
+      text-align: center;
+      background: rgba(11, 24, 10, 0.9);
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+    }
+
+    .locked-overlay p {
+      margin: 0 0 16px 0;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* Lightning Tab Theme Override Styles */
+    #lightningContent {
+      --bg: #0b0717;
+      --card: #140d2a;
+      --text-main: #f3effc;
+      --text-secondary: #beadff;
+      --muted: #7b6d9d;
+      --border: #2c1a4e;
+      --input-bg: #070311;
+      --bg-secondary: #100b21;
+      --bg-hover: #1e133c;
+      --accent: #ffcc00; /* Neon Gold for lightning sparks */
+      --accent-hover: #ffe066;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+    #lightningContent .wheel-card {
+      background:
+        radial-gradient(140% 120% at 50% 0%, rgba(204, 153, 0, 0.12) 0%, rgba(20, 13, 42, 0.45) 45%, rgba(11, 7, 23, 0.95) 100%),
+        var(--card);
+      border-color: rgba(204, 153, 0, 0.35);
+      box-shadow: 0 14px 30px rgba(7, 3, 17, 0.65), inset 0 1px 0 rgba(255, 204, 0, 0.08);
+    }
+
+    /* Only when Lightning tab is active: match header and strategy card to wheel-card surface */
+    .container:has(#lightningContent.active) .tab-nav,
+    .container:has(#lightningContent.active) #lightningContent .strategy-card {
+      background:
+        radial-gradient(140% 120% at 50% 0%, rgba(204, 153, 0, 0.12) 0%, rgba(20, 13, 42, 0.45) 45%, rgba(11, 7, 23, 0.95) 100%),
+        var(--card);
+      border-color: rgba(204, 153, 0, 0.35);
+      box-shadow: 0 14px 30px rgba(7, 3, 17, 0.65), inset 0 1px 0 rgba(255, 204, 0, 0.08);
+    }
+
+    .container:has(#lightningContent.active) #lightningContent .strategy-card::after {
+      background:
+        radial-gradient(80% 40% at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 70%),
+        linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.02) 48%, transparent 52%, rgba(255,255,255,0.01) 100%);
+      opacity: 0.55;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .collapse-arrow {
+      font-size: 8px;
+      color: var(--text-secondary);
+      transition: transform 0.2s ease;
+      margin-right: 4px;
+    }
+    .card.collapsed .card-content {
+      display: none !important;
+    }
+    .card.collapsed .collapse-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .number-badge.blue {
+      background: rgba(51, 153, 255, 0.15) !important;
+      border: 1px solid rgba(51, 153, 255, 0.45) !important;
+      color: #3399ff !important;
+      box-shadow: 0 0 6px rgba(51, 153, 255, 0.2) !important;
+    }
+    .number-badge.purple {
+      background: rgba(155, 89, 182, 0.15) !important;
+      border: 1px solid rgba(155, 89, 182, 0.45) !important;
+      color: #9b59b6 !important;
+      box-shadow: 0 0 6px rgba(155, 89, 182, 0.2) !important;
+    }
+    .number-badge.gold-glow {
+      background: rgba(255, 216, 77, 0.15) !important;
+      border: 1px solid rgba(255, 216, 77, 0.45) !important;
+      color: #ffd84d !important;
+      box-shadow: 0 0 6px rgba(255, 216, 77, 0.2) !important;
+    }
+    .number-badge.green-glow {
+      background: rgba(84, 180, 53, 0.15) !important;
+      border: 1px solid rgba(84, 180, 53, 0.45) !important;
+      color: #73cf53 !important;
+      box-shadow: 0 0 6px rgba(84, 180, 53, 0.2) !important;
+    }
+    .number-badge.pattern-chip-inactive {
+      opacity: 0.55;
+      border-style: dashed !important;
+      color: rgba(214, 232, 202, 0.7) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    }
+    .number-badge.pattern-chip-rotate {
+      animation: patternChipRotate 0.45s ease;
+    }
+    @keyframes patternChipRotate {
+      0% { transform: rotate(0deg) scale(0.9); opacity: 0.45; }
+      60% { transform: rotate(220deg) scale(1.07); opacity: 1; }
+      100% { transform: rotate(360deg) scale(1); opacity: 1; }
+    }
+    .pref-grid-item {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      border: 2px solid transparent;
+      color: #fff !important;
+    }
+    .pref-grid-item:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    .pref-grid-item.selected {
+      border-color: var(--accent) !important;
+      transform: scale(1.15);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    .zrr-pref-target-input {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px dashed rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      text-align: center;
+      font-weight: 800;
+      font-size: 13px;
+      opacity: 0.55;
+      outline: none;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      -moz-appearance: textfield;
+    }
+    .zrr-pref-target-input::-webkit-outer-spin-button,
+    .zrr-pref-target-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .zrr-pref-target-input:focus {
+      border-color: var(--accent) !important;
+      opacity: 1.0 !important;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    
+    /* Gemini Assistant Toggle Switch & Orb Styles */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border);
+      transition: .3s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-main);
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #a855f7;
+    }
+    input:checked + .slider:before {
+      transform: translateX(14px);
+    }
+    
+    /* Mysterious Pulsing Orb style */
+    .wheel-center-chip.agent-active {
+      opacity: 1 !important;
+      background: radial-gradient(circle at 35% 35%, rgba(168, 85, 247, 0.95) 0%, rgba(107, 33, 168, 0.9) 45%, rgba(59, 7, 100, 0.95) 100%) !important;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.4) !important;
+      animation: mysterious-orb-pulse 2.2s infinite ease-in-out !important;
+      border-color: rgba(168, 85, 247, 0.6) !important;
+    }
+    
+    @keyframes mysterious-orb-pulse {
+      0% {
+        transform: translate(-50%, -50%) scale(1.0);
+        box-shadow: 0 0 18px rgba(168, 85, 247, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.3);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.08);
+        box-shadow: 0 0 32px rgba(168, 85, 247, 0.98), inset 0 0 14px rgba(255, 255, 255, 0.5);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.0);
+        box-shadow: 0 0 18px rgba(168, 85, 247, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    .agent-status-dot.active {
+      background: #a855f7 !important;
+      box-shadow: 0 0 8px #a855f7;
+      animation: status-dot-pulse 1.5s infinite alternate;
+    }
+    
+    /* Modular Layout Card Styling */
+    .card-header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-control-btn {
+      font-size: 11px;
+      opacity: 0.4;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      user-select: none;
+      color: var(--text-secondary);
+      padding: 2px;
+    }
+    .card-control-btn:hover {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+    
+    /* Drag and Drop styles */
+    .draggable-card {
+      cursor: grab;
+      position: relative;
+    }
+    .draggable-card:active {
+      cursor: grabbing;
+    }
+    .draggable-card.dragging {
+      opacity: 0.4;
+      border: 1.5px dashed #a855f7 !important;
+      transform: scale(0.98);
+    }
+    .draggable-card.drag-over {
+      border-top: 2.5px solid #a855f7 !important;
+    }
+
+    /* Harmonized Header and Card Border Classes (No Inline CSS/!important) */
+    .card-header-title {
+      margin: 0;
+      font-size: 12px;
+      border-left: 3px solid var(--accent);
+      padding-left: 6px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .agent-status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: all 0.3s ease;
+    }
+    .math-card {
+      border-color: rgba(84, 180, 53, 0.25);
+    }
+    .gemini-card {
+      border-color: rgba(84, 180, 53, 0.25);
+    }
+    .forest-card {
+      background:
+        radial-gradient(140% 120% at 50% 0%, rgba(84, 180, 53, 0.12) 0%, rgba(10, 28, 9, 0.45) 45%, rgba(8, 22, 7, 0.95) 100%),
+        var(--card);
+      padding: 12px;
+      border-radius: 14px;
+      border-color: rgba(84, 180, 53, 0.35);
+      box-shadow: 0 14px 30px rgba(3, 12, 3, 0.55), inset 0 1px 0 rgba(115, 207, 83, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .forest-card:hover {
+      box-shadow: 0 16px 36px rgba(3, 12, 3, 0.75);
+    }
+    .container:has(#dashboardContent.active) .tab-nav {
+      background: transparent;
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <div class="tab-actions">
+        <button type="button" id="dashboardTab" class="tab-btn active" aria-label="Dealer Strategy" data-tooltip="Dealer Strategy">
+          <span class="tab-letter">D</span>
+        </button>
+        <button type="button" id="lightningTab" class="tab-btn" aria-label="Lightning Strategy" data-tooltip="Lightning Strategy">
+          <span class="tab-letter">L</span>
+        </button>
+        <button type="button" id="sessionTab" class="tab-btn" aria-label="Session" data-tooltip="Statistics">
+          <span class="tab-letter">P</span>
+        </button>
+        <button type="button" id="accountTab" class="tab-btn" aria-label="Account" data-tooltip="Account">
+          <span class="tab-letter">A</span>
+        </button>
+      </div>
+      <div class="nav-tools">
+        <button type="button" id="zrr-record-session" class="tab-btn record-btn hidden" aria-label="Record Session" data-tooltip="Record Session">
+          <span class="record-dot"></span>
+        </button>
+        <div id="zrr-header" class="nav-status state-idle">
+          <span id="zrr-header-badge" class="header-badge">Idle</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main" id="workspaceMain">
+
+      <!-- DASHBOARD TAB CONTENT -->
+      <section id="dashboardContent" class="tab-content active">
+        <!-- Auth Lock Shield -->
+        <div id="dashboardLocked" class="locked-overlay">
+          <p>Please login to your Account to unlock the Live ZenRoulette Assistant dashboard features.</p>
+          <button class="btn go-to-login-btn">Go to Login</button>
+        </div>
+
+        <div id="dashboardUnlocked" style="display: none; flex-direction: column; gap: 12px;">
+          
+          <div id="dashboardCardsContainer" class="cards-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Wheel Canvas Card -->
+            <div class="card forest-card wheel-card draggable-card" id="zrr-wheel-card">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 class="card-header-title">Zen Roulette Wheel</h2>
+                </div>
+                <div class="card-header-controls">
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+              
+              <div class="card-content">
+                <div class="dashboard-top-grid">
+                  <div class="tracked-inline">
+                    <div class="rail-head"><span class="rail-icon last" title="Last 4 numbers">L4</span></div>
+                    <div id="zrr-last-four-numbers" class="rail-stack zrr-last-four-numbers"></div>
+                  </div>
+                  <div class="wheel-main">
+                    <!-- Clumping Strength Indicator -->
+                    <div id="zrr-clumping-indicator" style="display: none; position: absolute; top: 12px; left: 0; right: 0; justify-content: center; align-items: center; font-size: 10px; font-weight: 700; text-align: center; pointer-events: none; width: 100%;">
+                      <span id="zrr-clumping-value" style="color: #3399ff;">Low (0%)</span>
+                    </div>
+                    <!-- Canvas Wrapper to lock center chip and add padding above wheel -->
+                    <div class="canvas-wrapper" style="position: relative; display: flex; justify-content: center; align-items: center; width: 220px; height: 220px; margin-top: 26px;">
+                      <canvas id="canvas" width="220" height="220"></canvas>
+                      <div id="wheel-center-chip" class="wheel-center-chip"></div>
+                    </div>
+                    <div id="zrr-gold-rail-std" class="gold-rail">
+                      <div id="zrr-gold-numbers" class="gold-number-row zrr-gold-numbers"></div>
+                    </div>
+                  </div>
+                  <div class="tracked-inline">
+                    <div class="rail-head"><span class="rail-icon jp" title="Jackpot numbers">JP</span></div>
+                    <div id="zrr-jackpot-four-numbers" class="rail-stack zrr-jackpot-four-numbers"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommendation Alert Card -->
+            <div class="card forest-card strategy-card draggable-card" id="zrr-strategy-card">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 class="card-header-title">Zen Assistant Strategy</h2>
+                </div>
+                <div class="card-header-controls">
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+              <div class="card-content">
+                <div id="zrr-recommendation" class="recommendation-alert clickable zrr-recommendation" style="margin-top: 8px;">
+                  Waiting for live game roulette data... (Click to Reconnect)
+                </div>
+                <div id="zrr-bet-numbers" class="strategy-output zrr-bet-numbers">
+                </div>
+                <div id="zrr-high-stake-numbers" class="zrr-high-stake-numbers" style="font-size: 13px; font-weight: 700; color: #3399FF; text-align: center; margin-top: 4px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Zen Exit Strategy & Bet Calculator -->
+            <div class="card forest-card math-card draggable-card" id="zrr-exit-card">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 class="card-header-title">Zen Exit Strategy</h2>
+                </div>
+                <div class="card-header-controls">
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+              
+              <div class="card-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                  <div>
+                    <label style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Current Balance (RON)</label>
+                    <input type="number" id="zrr-math-budget" class="zrr-math-budget" value="1000" min="1" step="1" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Target Profit (%)</label>
+                    <input type="number" id="zrr-math-profit-percent" class="zrr-math-profit-percent" value="30" min="1" max="500" step="5" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
+                  <div>
+                    <label style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Nomination Unit (RON)</label>
+                    <select id="zrr-math-unit" class="zrr-math-unit" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;">
+                      <option value="0.5">0.5 RON</option>
+                      <option value="1" selected>1 RON</option>
+                      <option value="2">2 RON</option>
+                      <option value="5">5 RON</option>
+                      <option value="10">10 RON</option>
+                      <option value="20">20 RON</option>
+                      <option value="50">50 RON</option>
+                      <option value="100">100 RON</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Min Survival Spins</label>
+                    <input type="number" id="zrr-math-min-spins" class="zrr-math-min-spins" value="20" min="5" max="100" step="1" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                  </div>
+                </div>
+
+                <!-- Target Display Line -->
+                <div style="background: rgba(84, 180, 53, 0.06); border: 1px solid rgba(84, 180, 53, 0.15); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
+                  <span style="color: var(--text-secondary); font-weight: 600;">Target Exit Balance:</span>
+                  <span id="zrr-math-exit-target" class="zrr-math-exit-target" style="color: var(--accent); font-weight: 800; font-size: 12px;">1300.00 RON</span>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid rgba(84, 180, 53, 0.15); margin: 6px 0;" />
+
+                <!-- Output calculations -->
+                <div id="zrr-math-outputs">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Optimal Bet Recommendation</div>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <!-- Standard numbers -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                      <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2b741b; border: 1px solid var(--border);"></span>
+                        <span>Standard Cover (<span id="zrr-math-std-count" class="zrr-math-std-count">0</span> numbers)</span>
+                      </span>
+                      <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-std-bet" class="zrr-math-std-bet">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-std-total" class="zrr-math-std-total">0.00</span>)</span></span>
+                    </div>
+
+                    <!-- Golden numbers -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                      <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ffd84d; border: 1px solid #ffd84d;"></span>
+                        <span>Golden Overlaps (<span id="zrr-math-gold-count" class="zrr-math-gold-count">0</span> numbers)</span>
+                      </span>
+                      <span style="font-weight: 700; color: #ffd84d;"><span id="zrr-math-gold-bet" class="zrr-math-gold-bet">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-gold-total" class="zrr-math-gold-total">0.00</span>)</span></span>
+                    </div>
+
+                    <!-- Jackpot targets -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                      <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3399ff; border: 1px solid #3399ff;"></span>
+                        <span>Jackpot Targets (<span id="zrr-math-jp-count" class="zrr-math-jp-count">0</span> numbers)</span>
+                      </span>
+                      <span style="font-weight: 700; color: #3399ff;"><span id="zrr-math-jp-bet" class="zrr-math-jp-bet">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-jp-total" class="zrr-math-jp-total">0.00</span>)</span></span>
+                    </div>
+
+                    <!-- Total bet line -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed rgba(84, 180, 53, 0.25); padding-top: 6px; margin-top: 2px;">
+                      <span>TOTAL BET PER ROUND</span>
+                      <span style="color: var(--accent);"><span id="zrr-math-total-bet" class="zrr-math-total-bet">0.00</span> RON</span>
+                    </div>
+                  </div>
+
+                  <!-- Strategy Performance Metrics -->
+                  <div style="margin-top: 8px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                      <span style="color: var(--muted);">Survival Capability:</span>
+                      <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-survival-spins" class="zrr-math-survival-spins">0</span> losing spins</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                      <span style="color: var(--muted);">Standard Win Net Profit:</span>
+                      <span id="zrr-math-std-profit-val" class="zrr-math-std-profit-val" style="font-weight: 700;">0.00 RON</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                      <span style="color: var(--muted);">Golden Win Net Profit:</span>
+                      <span id="zrr-math-gold-profit-val" class="zrr-math-gold-profit-val" style="font-weight: 700; color:#ffd84d;">0.00 RON</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                      <span style="color: var(--muted);">Jackpot Win Net Profit:</span>
+                      <span id="zrr-math-jp-profit-val" class="zrr-math-jp-profit-val" style="font-weight: 700; color:#3399ff;">0.00 RON</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
+                      <span style="color: var(--text-secondary); font-weight:600;">Required Hits to Exit:</span>
+                      <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-hits-to-exit" class="zrr-math-hits-to-exit">0</span> JP hits</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Zen AI Assistant Section -->
+            <div class="card forest-card gemini-card draggable-card" id="zrr-gemini-card">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 class="card-header-title">
+                    <span id="zrr-gemini-status-dot" class="agent-status-dot"></span>
+                    Zen AI Assistant
+                  </h2>
+                </div>
+                <div class="card-header-controls">
+                  <label class="switch" style="margin-right: 4px;">
+                    <input type="checkbox" id="zrr-gemini-toggle" class="zrr-gemini-toggle-input">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+
+              <div class="card-content">
+                <!-- Configuration Settings (collapsed when connected) -->
+                <div id="zrr-gemini-config" class="zrr-gemini-config-panel" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Enter your Gemini API key or connect your account:</div>
+                  <div style="display: flex; gap: 6px;">
+                    <input type="password" id="zrr-gemini-key" class="zrr-gemini-key-input" placeholder="Paste Gemini API Key..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                    <button id="zrr-gemini-save-btn" class="btn small zrr-gemini-save-btn-input" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Save</button>
+                  </div>
+                  <div style="text-align: center; font-size: 10px; color: var(--muted); margin: 2px 0;">— OR —</div>
+                  <button id="zrr-gemini-google-btn" class="btn secondary small zrr-gemini-google-btn-input" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    Connect with Google
+                  </button>
+                </div>
+
+                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                  <span>AI Assistant Chat</span>
+                  <span class="zrr-gemini-model-badge" style="color: #a855f7; font-size: 9px; text-transform: uppercase;">Offline</span>
+                </div>
+
+                <!-- Chatbox Feed -->
+                <div class="zrr-gemini-chat-history" style="margin-top: 4px; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(147, 51, 234, 0.15); font-size: 11px;">
+                  <div class="zrr-gemini-chat-msg system-msg" style="color: var(--text-secondary); font-style: italic;">
+                    Assistant is on standby... Ask me anything.
+                  </div>
+                </div>
+
+                <div class="zrr-gemini-chat-input-row" style="margin-top: 6px; display: flex; gap: 6px;">
+                  <input type="text" class="zrr-gemini-chat-input" placeholder="Type your question here..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                  <button class="btn small zrr-gemini-chat-send-btn" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Send</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modular Layout Settings -->
+          <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
+            <button id="zrr-layout-export-btn" class="btn secondary small" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">Export Layout</button>
+            <button id="zrr-layout-import-btn" class="btn secondary small" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">Import Layout</button>
+            <button id="zrr-layout-reset-btn" class="btn secondary small" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #ff5252; border-color: rgba(255, 82, 82, 0.3);">Reset Layout</button>
+          </div>
+          <input type="file" id="zrr-layout-import-file" style="display: none;" accept=".json" />
+        </div>
+      </section>
+
+      <!-- LIGHTNING TAB CONTENT -->
+      <section id="lightningContent" class="tab-content">
+        <!-- Auth Lock Shield -->
+        <div id="lightningLocked" class="locked-overlay">
+          <p>Please login to your Account to unlock the Live ZenRoulette Assistant dashboard features.</p>
+          <button class="btn go-to-login-btn">Go to Login</button>
+        </div>
+
+        <div id="lightningUnlocked" class="cards-list" style="display: none; flex-direction: column; gap: 12px;">
+          <!-- Wheel Canvas Card -->
+          <div class="card wheel-card draggable-card" id="zrr-wheel-card-lt">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Roulette Wheel (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            
+            <div class="card-content">
+              <div class="dashboard-top-grid">
+                <div class="tracked-inline">
+                  <div class="rail-head"><span class="rail-icon pattern" title="Pattern Tracker (Active Patterns)">PT</span></div>
+                  <div id="zrr-last-four-numbers-lt" class="rail-stack zrr-last-four-numbers-lt"></div>
+                </div>
+                <div class="wheel-main">
+                  <!-- Clumping Strength Indicator -->
+                  <div id="zrr-clumping-indicator-lt" style="display: none; position: absolute; top: 12px; left: 0; right: 0; justify-content: center; align-items: center; font-size: 10px; font-weight: 700; text-align: center; pointer-events: none; width: 100%;">
+                    <span id="zrr-clumping-value-lt" style="color: #ffcc00;">Low (0%)</span>
+                  </div>
+                  <!-- Canvas Wrapper -->
+                  <div class="canvas-wrapper" style="position: relative; display: flex; justify-content: center; align-items: center; width: 220px; height: 220px; margin-top: 26px;">
+                    <canvas id="canvas-lt" width="220" height="220"></canvas>
+                    <div id="wheel-center-chip-lt" class="wheel-center-chip"></div>
+                  </div>
+                  <div id="zrr-gold-rail-lt" class="gold-rail">
+                    <div id="zrr-gold-numbers-lt" class="gold-number-row"></div>
+                  </div>
+                </div>
+                <div class="tracked-inline">
+                  <div class="rail-head"><span class="rail-icon jp" title="Jackpot numbers">JP</span></div>
+                  <div id="zrr-jackpot-four-numbers-lt" class="rail-stack zrr-jackpot-four-numbers-lt"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendation Alert Card -->
+          <div class="card strategy-card draggable-card" id="zrr-strategy-card-lt">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Assistant Strategy</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div id="zrr-recommendation-lt" class="recommendation-alert clickable zrr-recommendation-lt" style="margin-top: 8px;">
+                Waiting for live game roulette data... (Click to Reconnect)
+              </div>
+              <div id="zrr-bet-numbers-lt" class="strategy-output zrr-bet-numbers-lt">
+              </div>
+              <div id="zrr-high-stake-numbers-lt" class="zrr-high-stake-numbers-lt" style="font-size: 13px; font-weight: 700; color: #ffcc00; text-align: center; margin-top: 4px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Zen Exit Strategy & Bet Calculator -->
+          <div class="card math-card draggable-card" id="zrr-math-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Exit Strategy (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                <div>
+                  <label for="zrr-math-budget-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Current Balance (RON)</label>
+                  <input type="number" id="zrr-math-budget-lt" value="1000" min="1" step="1" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                </div>
+                <div>
+                  <label for="zrr-math-profit-percent-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Target Profit (%)</label>
+                  <input type="number" id="zrr-math-profit-percent-lt" value="30" min="1" max="500" step="5" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px;">
+                <div>
+                  <label for="zrr-math-unit-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Nomination Unit</label>
+                  <select id="zrr-math-unit-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
+                    <option value="0.5">0.5 RON</option>
+                    <option value="1" selected>1 RON</option>
+                    <option value="2">2 RON</option>
+                    <option value="5">5 RON</option>
+                    <option value="10">10 RON</option>
+                    <option value="20">20 RON</option>
+                    <option value="50">50 RON</option>
+                    <option value="100">100 RON</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="zrr-math-min-spins-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Min Spins</label>
+                  <input type="number" id="zrr-math-min-spins-lt" value="20" min="5" max="100" step="1" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;" />
+                </div>
+                <div>
+                  <label for="zrr-math-multiplier-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Sim Multiplier</label>
+                  <select id="zrr-math-multiplier-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
+                    <option value="30">30x (No Mult)</option>
+                    <option value="50">50x</option>
+                    <option value="100" selected>100x</option>
+                    <option value="200">200x</option>
+                    <option value="300">300x</option>
+                    <option value="400">400x</option>
+                    <option value="500">500x</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Target Display Line -->
+              <div style="background: rgba(255, 204, 0, 0.06); border: 1px solid rgba(255, 204, 0, 0.15); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
+                <span style="color: var(--text-secondary); font-weight: 600;">Target Exit Balance:</span>
+                <span id="zrr-math-exit-target-lt" class="zrr-math-exit-target-lt" style="color: var(--accent); font-weight: 800; font-size: 12px;">1300.00 RON</span>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid rgba(255, 204, 0, 0.15); margin: 6px 0;" />
+
+              <!-- Output calculations -->
+              <div id="zrr-math-outputs-lt">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Optimal Bet Recommendation</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <!-- Standard numbers -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2b741b; border: 1px solid var(--border);"></span>
+                      <span>Standard Cover (<span id="zrr-math-std-count-lt" class="zrr-math-std-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-std-bet-lt" class="zrr-math-std-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-std-total-lt" class="zrr-math-std-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Golden numbers -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ffd84d; border: 1px solid #ffd84d;"></span>
+                      <span>Golden Overlaps (<span id="zrr-math-gold-count-lt" class="zrr-math-gold-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: #ffd84d;"><span id="zrr-math-gold-bet-lt" class="zrr-math-gold-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-gold-total-lt" class="zrr-math-gold-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Jackpot targets -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3399ff; border: 1px solid #3399ff;"></span>
+                      <span>Jackpot Targets (<span id="zrr-math-jp-count-lt" class="zrr-math-jp-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: #3399ff;"><span id="zrr-math-jp-bet-lt" class="zrr-math-jp-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-jp-total-lt" class="zrr-math-jp-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Total bet line -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed rgba(255, 204, 0, 0.25); padding-top: 6px; margin-top: 2px;">
+                    <span>TOTAL BET PER ROUND</span>
+                    <span style="color: var(--accent);"><span id="zrr-math-total-bet-lt" class="zrr-math-total-bet-lt">0.00</span> RON</span>
+                  </div>
+                </div>
+
+                <!-- Strategy Performance Metrics -->
+                <div style="margin-top: 8px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Survival Capability:</span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-survival-spins-lt" class="zrr-math-survival-spins-lt">0</span> losing spins</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Standard Win Net Profit:</span>
+                    <span id="zrr-math-std-profit-val-lt" class="zrr-math-std-profit-val-lt" style="font-weight: 700;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Golden Win Net Profit:</span>
+                    <span id="zrr-math-gold-profit-val-lt" class="zrr-math-gold-profit-val-lt" style="font-weight: 700; color:#ffd84d;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Jackpot Win Net Profit:</span>
+                    <span id="zrr-math-jp-profit-val-lt" class="zrr-math-jp-profit-val-lt" style="font-weight: 700; color:#3399ff;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
+                    <span style="color: var(--text-secondary); font-weight:600;">Required Hits to Exit:</span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-hits-to-exit-lt" class="zrr-math-hits-to-exit-lt">0</span> JP hits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Patterns Toggles -->
+          <div class="card settings-card draggable-card" id="zrr-settings-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Active Patterns (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; font-size: 11px;">
+                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Zero Rule: Recommend neighbors of predecessor when zero is spun">
+                  <input type="checkbox" id="zrr-toggle-zero" checked style="accent-color: var(--accent);" /> Zero Rule
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Repeat Rule: Recommends playing repeating duplicate numbers">
+                  <input type="checkbox" id="zrr-toggle-rep" checked style="accent-color: var(--accent);" /> Repeat Pattern
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Consecutive Rule: Recommends playing consecutive numbers neighbors">
+                  <input type="checkbox" id="zrr-toggle-cns" checked style="accent-color: var(--accent);" /> Consecutive Pattern
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Preference Mapping: Plays custom targets based on last spin (1-18)">
+                  <input type="checkbox" id="zrr-toggle-pref" checked style="accent-color: var(--accent);" /> Preference Mapping
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Preference Mapping Settings Card -->
+          <div class="card settings-card draggable-card" id="zrr-custom-pref-card" style="border-color: rgba(84, 180, 53, 0.25); display: none;">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Custom Preference Mapping</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content" style="margin-top: 8px;">
+              <!-- 37 Numbers Grid -->
+              <div id="zrr-pref-grid" style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; max-width: 100%;">
+                <!-- Dynamic grid of 0-36 populated by JS -->
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 8px; font-size: 11px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="color: var(--text-secondary); font-weight: 600;">If Spin is:</span>
+                  <span id="zrr-pref-selected-display" class="number-badge green" style="width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px;">0</span>
+                </div>
+                <span style="color: var(--text-secondary); font-weight: 600;">Then recommend (Max 4):</span>
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 10px; justify-content: center; align-items: center;">
+                <input type="number" class="zrr-pref-target-input" data-index="0" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="1" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="2" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="3" min="0" max="36" placeholder="-" />
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 10px; margin-top: 12px; width: 100%;">
+                <button id="zrr-pref-export-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Export Config</button>
+                <button id="zrr-pref-import-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Import Config</button>
+                <input type="file" id="zrr-pref-import-file" style="display: none;" accept=".json" />
+              </div>
+            </div>
+          </div>
+            <!-- Zen AI Assistant Section (Lightning) -->
+            <div class="card math-card draggable-card" id="zrr-gemini-card-lt" style="border-color: rgba(147, 51, 234, 0.25); margin-top: 12px;">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 style="margin:0; font-size:12px; border-left: 3px solid #a855f7; padding-left: 6px; display: flex; align-items: center; gap: 6px; color: var(--text-main);">
+                    <span id="zrr-gemini-status-dot-lt" class="agent-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; transition: all 0.3s ease;"></span>
+                    Zen AI Assistant (Lightning)
+                  </h2>
+                </div>
+                <div class="card-header-controls">
+                  <label class="switch" style="margin-right: 4px;">
+                    <input type="checkbox" id="zrr-gemini-toggle-lt" class="zrr-gemini-toggle-input">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+
+              <div class="card-content">
+                <!-- Configuration Settings (collapsed when connected) -->
+                <div id="zrr-gemini-config-lt" class="zrr-gemini-config-panel" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Enter your Gemini API key or connect your account:</div>
+                  <div style="display: flex; gap: 6px;">
+                    <input type="password" id="zrr-gemini-key-lt" class="zrr-gemini-key-input" placeholder="Paste Gemini API Key..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                    <button id="zrr-gemini-save-btn-lt" class="btn small zrr-gemini-save-btn-input" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Save</button>
+                  </div>
+                  <div style="text-align: center; font-size: 10px; color: var(--muted); margin: 2px 0;">— OR —</div>
+                  <button id="zrr-gemini-google-btn-lt" class="btn secondary small zrr-gemini-google-btn-input" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    Connect with Google
+                  </button>
+                </div>
+
+                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                  <span>AI Assistant Chat</span>
+                  <span class="zrr-gemini-model-badge" style="color: #a855f7; font-size: 9px; text-transform: uppercase;">Offline</span>
+                </div>
+                
+                <!-- Chatbox Feed -->
+                <div class="zrr-gemini-chat-history" style="margin-top: 4px; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(147, 51, 234, 0.15); font-size: 11px;">
+                  <div class="zrr-gemini-chat-msg system-msg" style="color: var(--text-secondary); font-style: italic;">
+                    Assistant is on standby... Ask me anything.
+                  </div>
+                </div>
+
+                <div class="zrr-gemini-chat-input-row" style="margin-top: 6px; display: flex; gap: 6px;">
+                  <input type="text" class="zrr-gemini-chat-input" placeholder="Type your question here..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                  <button class="btn small zrr-gemini-chat-send-btn" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Send</button>
+                </div>
+              </div>
+            </div>
+      </section>
+
+      <!-- SESSION TAB CONTENT -->
+      <section id="sessionContent" class="tab-content">
+        <!-- Auth Lock Shield -->
+        <div id="sessionLocked" class="locked-overlay">
+          <p>Please login to your Account to unlock session metrics and stats recording features.</p>
+          <button class="btn go-to-login-btn">Go to Login</button>
+        </div>
+
+        <div id="sessionUnlocked" style="display: none; flex-direction: column; gap: 12px;">
+          <!-- Stats Summary Card -->
+          <div class="card">
+            <h2>Session Statistics</h2>
+            <div id="zrr-dealer-container" class="info-row">
+              <span class="info-label">Dealer Session</span>
+              <span id="zrr-dealer-name" class="info-val">Waiting...</span>
+            </div>
+            <div class="stats-summary" style="margin-top: 8px;">
+              <div class="stat-box">
+                <div class="stat-lbl">Plays</div>
+                <div id="stat-plays-val" class="stat-val">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-lbl">Win Ratio</div>
+                <div id="stat-ratio-val" class="stat-val">0%</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-lbl">JP Hits</div>
+                <div id="stat-jp-val" class="stat-val" style="color: #ffd84d;">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-lbl">Waits</div>
+                <div id="stat-waits-val" class="stat-val" style="color: var(--muted);">0</div>
+              </div>
+            </div>
+            <div class="stats-summary">
+              <div class="stat-box">
+                <div class="stat-lbl">Wins</div>
+                <div id="stat-wins-val" class="stat-val" style="color: var(--accent);">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-lbl">Losses</div>
+                <div id="stat-losses-val" class="stat-val" style="color: #ff5252;">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Last Hands Card -->
+          <div class="card">
+            <h2>Last Hands Result</h2>
+            <div id="zrr-play-information" class="hands-list">
+              <div class="msg">No rounds recorded yet in this session.</div>
+            </div>
+            <div class="session-controls">
+              <button id="zrr-start-session" class="btn small">Start Session</button>
+              <button id="zrr-end-session" class="btn secondary small" disabled>End Session</button>
+            </div>
+            <div class="btn-row">
+              <button id="zrr-save-stats" class="btn small">Save Stats</button>
+              <button id="zrr-reset-stats" class="btn secondary small">Reset</button>
+            </div>
+          </div>
+
+          <!-- Pattern Pre-Check Card -->
+          <div class="card">
+            <h2>Pattern Pre-Check</h2>
+            <div class="info-row">
+              <span class="info-label">History Scan</span>
+              <span id="zrr-pattern-report-status" class="info-val">Ready</span>
+            </div>
+            <div class="session-controls">
+              <button id="zrr-scan-patterns" class="btn small">Scan 500 Pattern Report</button>
+              <button id="zrr-save-pattern-report" class="btn secondary small" disabled>Save Report</button>
+            </div>
+            <div id="zrr-pattern-report" class="hands-list">
+              <div class="msg">Scan before starting a session to test Zero, Repeat, Consecutive, and Preference patterns on the latest table history.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACCOUNT TAB CONTENT -->
+      <section id="accountContent" class="tab-content">
+        <!-- LOGIN CONTAINER -->
+        <div id="zrr-login-container" class="card">
+          <h2>Sign In to ZRA</h2>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+            <div>
+              <label for="zrr-email">Username or Email</label>
+              <input type="text" id="zrr-email" placeholder="Username or email address" autocomplete="username" />
+            </div>
+            <div>
+              <label for="zrr-password">Password</label>
+              <input type="password" id="zrr-password" placeholder="••••••••" />
+            </div>
+            <button id="zrr-login-btn" class="btn" style="margin-top: 6px;">Sign In</button>
+            <div id="zrr-login-error" class="error-box"></div>
+            
+            <div style="text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+              Not a ZenRoulette Tribe member yet?
+              <a href="#" id="zrr-signup-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">Join over 2,000 members for free</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOGGED IN CONTAINER -->
+        <div id="zrr-member-container" class="card" style="display: none;">
+          <h2>Membership Status</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+            <div class="info-row">
+              <span class="info-label">Active Account</span>
+              <span id="zrr-member-email" class="info-val">email@site.com</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Membership Type</span>
+              <span id="zrr-membership" class="info-val" style="color: var(--accent);">TRIBE Member</span>
+            </div>
+            
+            <button id="zrr-logout-btn" class="btn secondary" style="margin-top: 6px;">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- PROMO BANNER FOR NON-LOGGED-IN USERS -->
+        <div id="zrr-promo-banner" class="card" style="margin-top: 12px; border: 1px dashed var(--accent); background: radial-gradient(120% 120% at 50% 0%, rgba(84, 180, 53, 0.06) 0%, var(--card) 100%);">
+          <h2 style="border-left-color: var(--accent);">Get 24h Free License</h2>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px; font-size: 13px; line-height: 1.4;">
+            <div style="color: var(--text-main);">
+              <a href="#" id="zrr-promo-register-btn" style="color: var(--accent); font-weight: 700; text-decoration: underline;">Join our tribe here</a> to register, then <a href="#" id="zrr-promo-forum-btn" style="color: var(--accent); font-weight: 700; text-decoration: underline;">introduce yourself to our forum community here</a>.
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); border-top: 1px solid rgba(84, 180, 53, 0.15); padding-top: 8px;">
+              The system will check automatically your post and generate a license for your 24 hours and send an email.
+            </div>
+          </div>
+        </div>
+
+        <!-- LICENSE CONTAINER -->
+        <div id="zrr-license-container" class="card" style="margin-top: 12px; display: none;">
+          <h2>24h Email License</h2>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+            <div>
+              <label for="zrr-license-email">License Email</label>
+              <input type="email" id="zrr-license-email" placeholder="name@email.com" />
+            </div>
+            <div>
+              <label for="zrr-license-code">Long License Code</label>
+              <input type="text" id="zrr-license-code" placeholder="Paste code received by email" style="text-transform: uppercase;" />
+            </div>
+            <div class="btn-row" style="margin-top: 2px;">
+              <button id="zrr-license-buy-btn" class="btn small">Buy 24h License</button>
+              <button id="zrr-license-request-btn" class="btn secondary small">Request from Admin</button>
+            </div>
+            <button id="zrr-license-activate-btn" class="btn">Activate License</button>
+            <div id="zrr-license-status" class="error-box" style="display:block; min-height:18px;"></div>
+            <div class="info-row" style="margin-top: 2px;">
+              <span class="info-label">License Expires</span>
+              <span id="zrr-license-expiry" class="info-val">Not active</span>
+            </div>
+            <div class="info-row" style="margin-top: -4px;">
+              <span class="info-label">Hours Remaining</span>
+              <span id="zrr-license-countdown" class="info-val">--:--:--</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="strategy-core.js"></script>
+  <script src="top.js"></script>
+</body>
+</html>

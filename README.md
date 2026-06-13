@@ -2,6 +2,14 @@
 
 Professional Chrome side-panel assistant for roulette session tracking, pattern review, and disciplined decision support.
 
+## About
+
+ZenRoulette Assistant is a Chrome side-panel extension for roulette session awareness, pattern tracking, and disciplined play review. It reads live roulette history from the active table page and presents it inside a focused Chrome side panel.
+
+The assistant watches recent roulette outcomes, highlights configured pattern families, and helps the player keep decisions structured instead of emotional. It is designed as a companion for learning, logging, and visualizing repeatable table behavior.
+
+Roulette remains a game of chance. This project is an analysis, education, and discipline tool. It does not guarantee winnings or predict outcomes. Use it only where permitted by local rules and platform terms.
+
 ![ZenRoulette Assistant Lightning tab](docs/screenshots/lightning.jpg)
 
 ## What It Does
@@ -70,35 +78,6 @@ Current version: **2.1.6**
 6. Paste the code into **Long License Code** and click **Activate License**.
 
 During promotional windows, eligible accounts may receive one automatic 24-hour license per email within a 24-hour period.
-
-## Local Development
-
-Load the source folder directly in Chrome:
-
-```bash
-cd extension
-```
-
-Then open `chrome://extensions/`, enable Developer mode, and choose **Load unpacked**.
-
-For browser-only preview screenshots, open `popup.html` directly. The UI uses safe demo data when it runs outside Chrome extension runtime.
-
-## Production Packaging
-
-The WordPress download package is built from `manifest.json` and deployed by the VPS script:
-
-```bash
-cd /Users/ohm/Sites/2026/zenroulette.com.local
-bash wp-vps/developer/scripts/deploy_zra_production.sh
-```
-
-The script creates:
-
-- `ZenRoulette-Assistant-v2.1.6.zip`
-- `ZenRoulette-Assistant-v2.zip`
-- `zenroulette-extension.json`
-
-It uploads the artifacts to WordPress and verifies the public download route.
 
 ## Security Notes
 

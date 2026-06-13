@@ -588,7 +588,7 @@
       flex-direction: column;
       gap: 10px;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       padding-top: 4px;
     }
 
@@ -655,7 +655,14 @@
       gap: 10px;
       justify-content: flex-start;
       align-items: center;
-      min-height: 176px;
+      min-height: 0;
+      overflow: visible;
+      padding-right: 0;
+    }
+
+    .zrr-jackpot-four-numbers,
+    .zrr-jackpot-four-numbers-lt {
+      overflow: hidden;
     }
 
     .wheel-main {
@@ -668,6 +675,19 @@
       position: relative;
       gap: 6px;
       padding-bottom: 8px;
+    }
+
+    .wheel-main .canvas-wrapper {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .wheel-main-lt {
+      align-items: center;
+    }
+
+    .wheel-canvas-wrapper-lt {
+      align-self: center;
     }
 
     .gold-rail {
@@ -738,6 +758,32 @@
       animation: chip-jackpot 0.38s cubic-bezier(0.34, 1.46, 0.64, 1) forwards,
                  chip-jackpot-pulse 1.3s ease-in-out 0.4s infinite;
       border-color: #3399ff;
+    }
+
+    .wheel-history-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s ease;
+    }
+    .wheel-history-badge.red {
+      background: #c81a22;
+      border: 1px solid rgba(200, 26, 34, 0.5);
+    }
+    .wheel-history-badge.black {
+      background: #1a1a1a;
+      border: 1px solid rgba(26, 26, 26, 0.5);
+    }
+    .wheel-history-badge.green {
+      background: #2b741b;
+      border: 1px solid rgba(43, 116, 27, 0.5);
     }
 
     @keyframes chip-roll-in {
@@ -1502,7 +1548,7 @@
     .card.collapsed .collapse-arrow {
       transform: rotate(180deg);
     }
-    
+
     .number-badge.blue {
       background: rgba(51, 153, 255, 0.15) !important;
       border: 1px solid rgba(51, 153, 255, 0.45) !important;
@@ -1536,10 +1582,37 @@
     .number-badge.pattern-chip-rotate {
       animation: patternChipRotate 0.45s ease;
     }
+    .number-badge.pattern-chip-active-pulse {
+      animation: pattern-chip-pulse 2s infinite ease-in-out;
+    }
+    @keyframes pattern-chip-pulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.06); filter: brightness(1.2) drop-shadow(0 0 4px currentColor); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
     @keyframes patternChipRotate {
       0% { transform: rotate(0deg) scale(0.9); opacity: 0.45; }
       60% { transform: rotate(220deg) scale(1.07); opacity: 1; }
       100% { transform: rotate(360deg) scale(1); opacity: 1; }
+    }
+    .pattern-drag-item.dragging {
+      opacity: 0.5;
+      border: 1px dashed var(--accent) !important;
+    }
+    .pattern-drag-item.drag-over {
+      border: 1px dashed var(--accent) !important;
+      background: rgba(84, 180, 53, 0.1) !important;
+    }
+    .pattern-drag-item.action-selected {
+      border-color: rgba(255, 204, 0, 0.55) !important;
+      box-shadow: 0 0 0 1px rgba(255, 204, 0, 0.16), 0 0 16px rgba(255, 204, 0, 0.08);
+    }
+    .pattern-action-btn {
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+    .pattern-action-btn:hover {
+      color: var(--accent) !important;
+      transform: scale(1.15);
     }
     .pref-grid-item {
       width: 24px;
@@ -1593,7 +1666,7 @@
       opacity: 1.0 !important;
       box-shadow: 0 0 8px var(--accent);
     }
-    
+
     /* Gemini Assistant Toggle Switch & Orb Styles */
     .switch {
       position: relative;
@@ -1631,7 +1704,7 @@
     input:checked + .slider:before {
       transform: translateX(14px);
     }
-    
+
     /* Mysterious Pulsing Orb style */
     .wheel-center-chip.agent-active {
       opacity: 1 !important;
@@ -1640,7 +1713,7 @@
       animation: mysterious-orb-pulse 2.2s infinite ease-in-out !important;
       border-color: rgba(168, 85, 247, 0.6) !important;
     }
-    
+
     @keyframes mysterious-orb-pulse {
       0% {
         transform: translate(-50%, -50%) scale(1.0);
@@ -1655,13 +1728,13 @@
         box-shadow: 0 0 18px rgba(168, 85, 247, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.3);
       }
     }
-    
+
     .agent-status-dot.active {
       background: #a855f7 !important;
       box-shadow: 0 0 8px #a855f7;
       animation: status-dot-pulse 1.5s infinite alternate;
     }
-    
+
     /* Modular Layout Card Styling */
     .card-header-controls {
       display: flex;
@@ -1681,7 +1754,7 @@
       opacity: 1;
       transform: scale(1.15);
     }
-    
+
     /* Drag and Drop styles */
     .draggable-card {
       cursor: grab;
@@ -1740,6 +1813,116 @@
     .forest-card:hover {
       box-shadow: 0 16px 36px rgba(3, 12, 3, 0.75);
     }
+
+    /* TradingView of Roulette CSS */
+    .tv-number-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 3px;
+      margin-top: 4px;
+    }
+    .tv-grid-btn {
+      aspect-ratio: 1;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      background: #1f2937;
+      color: #fff;
+    }
+    .tv-grid-btn.red { background: #ef4444; }
+    .tv-grid-btn.black { background: #111827; }
+    .tv-grid-btn.green { background: #10b981; grid-column: span 12; aspect-ratio: auto; height: 18px; }
+    .tv-grid-btn:hover {
+      filter: brightness(1.2);
+    }
+    .tv-grid-btn.selected {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      box-shadow: 0 0 8px var(--accent);
+      transform: scale(1.05);
+      z-index: 2;
+    }
+    .tv-grid-btn.active-trigger {
+      background: #f59e0b !important;
+      color: #000 !important;
+      outline: 2px solid #f59e0b;
+      outline-offset: 1px;
+    }
+    .tv-strategy-card {
+      margin-bottom: 10px;
+      padding: 10px;
+      position: relative;
+    }
+    .tv-strategy-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .tv-strategy-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+    .tv-strategy-badge {
+      font-size: 8px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+      background: rgba(84, 180, 53, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(84, 180, 53, 0.3);
+    }
+    .tv-strategy-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+    .tv-strategy-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      background: rgba(0,0,0,0.15);
+      padding: 4px 6px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .tv-strategy-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .tv-strategy-actions button {
+      font-size: 10px;
+      padding: 4px 8px;
+      height: 22px;
+    }
+    .tv-follow-btn {
+      font-size: 9px !important;
+      padding: 2px 6px !important;
+      height: 16px !important;
+      border-radius: 4px;
+      margin-left: 6px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .tv-follow-btn.following {
+      background: var(--accent);
+      color: #000;
+    }
+
     .container:has(#dashboardContent.active) .tab-nav {
       background: transparent;
       box-shadow: none;
@@ -1752,14 +1935,17 @@
     <!-- Tab Navigation -->
     <nav class="tab-nav">
       <div class="tab-actions">
-        <button type="button" id="dashboardTab" class="tab-btn active" aria-label="Dealer Strategy" data-tooltip="Dealer Strategy">
-          <span class="tab-letter">D</span>
-        </button>
-        <button type="button" id="lightningTab" class="tab-btn" aria-label="Lightning Strategy" data-tooltip="Lightning Strategy">
+        <button type="button" id="lightningTab" class="tab-btn active" aria-label="Lightning Strategy" data-tooltip="Lightning Strategy">
           <span class="tab-letter">L</span>
+        </button>
+        <button type="button" id="dashboardTab" class="tab-btn" aria-label="Dealer Strategy" data-tooltip="Dealer Strategy">
+          <span class="tab-letter">D</span>
         </button>
         <button type="button" id="sessionTab" class="tab-btn" aria-label="Session" data-tooltip="Statistics">
           <span class="tab-letter">P</span>
+        </button>
+        <button type="button" id="strategiesTab" class="tab-btn" aria-label="Strategies" data-tooltip="TradingView of Roulette">
+          <span class="tab-letter">T</span>
         </button>
         <button type="button" id="accountTab" class="tab-btn" aria-label="Account" data-tooltip="Account">
           <span class="tab-letter">A</span>
@@ -1778,8 +1964,409 @@
     <!-- Main Workspace -->
     <main class="main" id="workspaceMain">
 
+      <!-- LIGHTNING TAB CONTENT -->
+      <section id="lightningContent" class="tab-content active">
+        <!-- Auth Lock Shield -->
+        <div id="lightningLocked" class="locked-overlay">
+          <p>Please login to your Account to unlock the Live ZenRoulette Assistant dashboard features.</p>
+          <button class="btn go-to-login-btn">Go to Login</button>
+        </div>
+
+        <div id="lightningUnlocked" class="cards-list" style="display: none; flex-direction: column; gap: 12px;">
+          <!-- Wheel Canvas Card -->
+          <div class="card wheel-card draggable-card" id="zrr-wheel-card-lt">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Roulette Wheel (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <div class="dashboard-top-grid">
+                <div class="tracked-inline">
+                  <div class="rail-head"><span class="rail-icon pattern" title="Pattern Tracker (Active Patterns)">PT</span></div>
+                  <div id="zrr-last-four-numbers-lt" class="rail-stack zrr-last-four-numbers-lt"></div>
+                </div>
+                <div class="wheel-main wheel-main-lt" style="display: flex; flex-direction: column; align-items: center;">
+                  <!-- History Rail on top of the wheel -->
+                  <div id="zrr-history-rail-lt" class="gold-rail" style="border-top: none; border-bottom: 1px dashed rgba(255, 204, 0, 0.18); padding-top: 0; padding-bottom: 7px; margin-bottom: 8px; margin-top: 22px;">
+                    <div id="zrr-wheel-history-lt" class="gold-number-row" style="min-height: auto;"></div>
+                  </div>
+
+                  <!-- Clumping Strength Indicator -->
+                  <div id="zrr-clumping-indicator-lt" style="display: none; position: absolute; top: 38px; left: 0; right: 0; justify-content: center; align-items: center; font-size: 10px; font-weight: 700; text-align: center; pointer-events: none; width: 100%;">
+                    <span id="zrr-clumping-value-lt" style="color: #ffcc00;">Low (0%)</span>
+                  </div>
+                  <!-- Canvas Wrapper -->
+                  <div class="canvas-wrapper wheel-canvas-wrapper-lt" style="position: relative; display: flex; justify-content: center; align-items: center; width: 220px; height: 220px; margin-top: 10px;">
+                    <canvas id="canvas-lt" width="220" height="220"></canvas>
+                    <div id="wheel-center-chip-lt" class="wheel-center-chip"></div>
+                  </div>
+                  <div id="zrr-gold-rail-lt" class="gold-rail">
+                    <div id="zrr-gold-numbers-lt" class="gold-number-row"></div>
+                  </div>
+                </div>
+                <div class="tracked-inline">
+                  <div class="rail-head"><span class="rail-icon jp" title="Jackpot numbers">JP</span></div>
+                  <div id="zrr-jackpot-four-numbers-lt" class="rail-stack zrr-jackpot-four-numbers-lt"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendation Alert Card -->
+          <div class="card strategy-card draggable-card" id="zrr-strategy-card-lt">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Assistant Strategy</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div id="zrr-recommendation-lt" class="recommendation-alert clickable zrr-recommendation-lt" style="margin-top: 8px;">
+                Waiting for live game roulette data... (Click to Reconnect)
+              </div>
+              <div id="zrr-bet-numbers-lt" class="strategy-output zrr-bet-numbers-lt">
+              </div>
+              <div id="zrr-high-stake-numbers-lt" class="zrr-high-stake-numbers-lt" style="font-size: 13px; font-weight: 700; color: #ffcc00; text-align: center; margin-top: 4px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Zen Exit Strategy & Bet Calculator -->
+          <div class="card math-card draggable-card" id="zrr-math-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Exit Strategy (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+                <div>
+                  <label for="zrr-math-budget-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Current Balance (RON)</label>
+                  <input type="number" id="zrr-math-budget-lt" value="1000" min="1" step="1" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                </div>
+                <div>
+                  <label for="zrr-math-profit-percent-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Target Profit (%)</label>
+                  <input type="number" id="zrr-math-profit-percent-lt" value="30" min="1" max="500" step="5" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px;">
+                <div>
+                  <label for="zrr-math-unit-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Nomination Unit</label>
+                  <select id="zrr-math-unit-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
+                    <option value="0.5">0.5 RON</option>
+                    <option value="1" selected>1 RON</option>
+                    <option value="2">2 RON</option>
+                    <option value="5">5 RON</option>
+                    <option value="10">10 RON</option>
+                    <option value="20">20 RON</option>
+                    <option value="50">50 RON</option>
+                    <option value="100">100 RON</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="zrr-math-min-spins-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Min Spins</label>
+                  <input type="number" id="zrr-math-min-spins-lt" value="20" min="5" max="100" step="1" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;" />
+                </div>
+                <div>
+                  <label for="zrr-math-multiplier-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Sim Multiplier</label>
+                  <select id="zrr-math-multiplier-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
+                    <option value="30">30x (No Mult)</option>
+                    <option value="50">50x</option>
+                    <option value="100" selected>100x</option>
+                    <option value="200">200x</option>
+                    <option value="300">300x</option>
+                    <option value="400">400x</option>
+                    <option value="500">500x</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Target Display Line -->
+              <div style="background: rgba(255, 204, 0, 0.06); border: 1px solid rgba(255, 204, 0, 0.15); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
+                <span style="color: var(--text-secondary); font-weight: 600;">Target Exit Balance:</span>
+                <span id="zrr-math-exit-target-lt" class="zrr-math-exit-target-lt" style="color: var(--accent); font-weight: 800; font-size: 12px;">1300.00 RON</span>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid rgba(255, 204, 0, 0.15); margin: 6px 0;" />
+
+              <!-- Output calculations -->
+              <div id="zrr-math-outputs-lt">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Optimal Bet Recommendation</div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <!-- Standard numbers -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2b741b; border: 1px solid var(--border);"></span>
+                      <span>Standard Cover (<span id="zrr-math-std-count-lt" class="zrr-math-std-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-std-bet-lt" class="zrr-math-std-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-std-total-lt" class="zrr-math-std-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Golden numbers -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ffd84d; border: 1px solid #ffd84d;"></span>
+                      <span>Golden Overlaps (<span id="zrr-math-gold-count-lt" class="zrr-math-gold-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: #ffd84d;"><span id="zrr-math-gold-bet-lt" class="zrr-math-gold-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-gold-total-lt" class="zrr-math-gold-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Jackpot targets -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3399ff; border: 1px solid #3399ff;"></span>
+                      <span>Jackpot Targets (<span id="zrr-math-jp-count-lt" class="zrr-math-jp-count-lt">0</span> numbers)</span>
+                    </span>
+                    <span style="font-weight: 700; color: #3399ff;"><span id="zrr-math-jp-bet-lt" class="zrr-math-jp-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-jp-total-lt" class="zrr-math-jp-total-lt">0.00</span>)</span></span>
+                  </div>
+
+                  <!-- Total bet line -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed rgba(255, 204, 0, 0.25); padding-top: 6px; margin-top: 2px;">
+                    <span>TOTAL BET PER ROUND</span>
+                    <span style="color: var(--accent);"><span id="zrr-math-total-bet-lt" class="zrr-math-total-bet-lt">0.00</span> RON</span>
+                  </div>
+                </div>
+
+                <!-- Strategy Performance Metrics -->
+                <div style="margin-top: 8px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Survival Capability:</span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-survival-spins-lt" class="zrr-math-survival-spins-lt">0</span> losing spins</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Standard Win Net Profit:</span>
+                    <span id="zrr-math-std-profit-val-lt" class="zrr-math-std-profit-val-lt" style="font-weight: 700;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Golden Win Net Profit:</span>
+                    <span id="zrr-math-gold-profit-val-lt" class="zrr-math-gold-profit-val-lt" style="font-weight: 700; color:#ffd84d;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                    <span style="color: var(--muted);">Jackpot Win Net Profit:</span>
+                    <span id="zrr-math-jp-profit-val-lt" class="zrr-math-jp-profit-val-lt" style="font-weight: 700; color:#3399ff;">0.00 RON</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
+                    <span style="color: var(--text-secondary); font-weight:600;">Required Hits to Exit:</span>
+                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-hits-to-exit-lt" class="zrr-math-hits-to-exit-lt">0</span> JP hits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Patterns Toggles -->
+          <div class="card settings-card draggable-card" id="zrr-settings-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Active Patterns (Lightning)</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content" style="padding: 10px;">
+              <div id="zrr-patterns-drag-container" class="patterns-drag-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px; width: 100%;">
+
+                <!-- ZERO Rule Row -->
+                <div class="pattern-drag-item" draggable="true" data-pattern="ZERO" style="display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--input-bg); border-radius: 6px; padding: 8px; cursor: grab; transition: all 0.15s ease;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                      <span class="drag-handle" style="color: var(--text-secondary); cursor: grab; font-size: 14px; user-select: none;">☰</span>
+                      <input type="checkbox" id="zrr-toggle-zero" checked style="accent-color: var(--accent); margin: 0; cursor: pointer; flex-shrink: 0;" />
+                      <span class="number-badge blue" style="font-size: 9px; font-weight: 800; min-width: 42px; width: 42px; height: 18px; line-height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0;">ZRO</span>
+                      <span class="pattern-title-clickable" style="font-weight: 700; font-size: 12px; color: var(--text-main); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to expand details">Zero Rule</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                      <span class="pattern-expand-chevron" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; transition: transform 0.2s ease; margin-left: 2px;">▼</span>
+                    </div>
+                  </div>
+                  <div class="pattern-description-expanded" style="display: none; font-size: 11px; color: var(--text-secondary); margin-top: 6px; border-top: 1px dashed rgba(84, 180, 53, 0.15); padding-top: 6px; line-height: 1.4;">
+                    Zero Rule: Detects when zero is spun, identifies its predecessor on the wheel, and targets its consecutive neighbors. Prevents double-zero runs and targets sector repeats.
+                  </div>
+                </div>
+
+
+
+                <!-- CNS Consecutive Pattern Row -->
+                <div class="pattern-drag-item" draggable="true" data-pattern="CNS" style="display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--input-bg); border-radius: 6px; padding: 8px; cursor: grab; transition: all 0.15s ease;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                      <span class="drag-handle" style="color: var(--text-secondary); cursor: grab; font-size: 14px; user-select: none;">☰</span>
+                      <input type="checkbox" id="zrr-toggle-cns" checked style="accent-color: var(--accent); margin: 0; cursor: pointer; flex-shrink: 0;" />
+                      <span class="number-badge gold-glow" style="font-size: 9px; font-weight: 800; min-width: 42px; width: 42px; height: 18px; line-height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0;">CNS</span>
+                      <span class="pattern-title-clickable" style="font-weight: 700; font-size: 12px; color: var(--text-main); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to expand details">Consecutive Neighbors</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                      <span class="pattern-expand-chevron" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; transition: transform 0.2s ease; margin-left: 2px;">▼</span>
+                    </div>
+                  </div>
+                  <div class="pattern-description-expanded" style="display: none; font-size: 11px; color: var(--text-secondary); margin-top: 6px; border-top: 1px dashed rgba(84, 180, 53, 0.15); padding-top: 6px; line-height: 1.4;">
+                    Consecutive Pattern: Triggers when consecutive numbers are spun back-to-back in the last 5 rounds. Targets neighbor segments of the consecutive pairs to capture wheel sector movement.
+                  </div>
+                </div>
+
+                <!-- REP Repeat Pattern Row -->
+                <div class="pattern-drag-item" draggable="true" data-pattern="REP" style="display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--input-bg); border-radius: 6px; padding: 8px; cursor: grab; transition: all 0.15s ease;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                      <span class="drag-handle" style="color: var(--text-secondary); cursor: grab; font-size: 14px; user-select: none;">☰</span>
+                      <input type="checkbox" id="zrr-toggle-rep" checked style="accent-color: var(--accent); margin: 0; cursor: pointer; flex-shrink: 0;" />
+                      <span class="number-badge purple" style="font-size: 9px; font-weight: 800; min-width: 42px; width: 42px; height: 18px; line-height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0;">RPT</span>
+                      <span class="pattern-title-clickable" style="font-weight: 700; font-size: 12px; color: var(--text-main); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to expand details">Repeat Pattern</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                      <span class="pattern-expand-chevron" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; transition: transform 0.2s ease; margin-left: 2px;">▼</span>
+                    </div>
+                  </div>
+                  <div class="pattern-description-expanded" style="display: none; font-size: 11px; color: var(--text-secondary); margin-top: 6px; border-top: 1px dashed rgba(84, 180, 53, 0.15); padding-top: 6px; line-height: 1.4;">
+                    Repeat Pattern: Monitors duplicate numbers in the recent history window (default 10 spins). Recommends betting on the last two numbers to catch hot repeats and streak tables.
+                  </div>
+                </div>
+
+                <!-- PREF Zen Custom Row -->
+                <div class="pattern-drag-item" draggable="true" data-pattern="PREF" style="display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--input-bg); border-radius: 6px; padding: 8px; cursor: grab; transition: all 0.15s ease;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                      <span class="drag-handle" style="color: var(--text-secondary); cursor: grab; font-size: 14px; user-select: none;">☰</span>
+                      <input type="checkbox" id="zrr-toggle-pref" checked style="accent-color: var(--accent); margin: 0; cursor: pointer; flex-shrink: 0;" />
+                      <span class="number-badge green-glow" style="font-size: 9px; font-weight: 800; min-width: 42px; width: 42px; height: 18px; line-height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; flex-shrink: 0;">CST</span>
+                      <span class="pattern-title-clickable" style="font-weight: 700; font-size: 12px; color: var(--text-main); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Click to expand details">Zen Custom</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                      <span class="pattern-expand-chevron" style="color: var(--text-secondary); font-size: 10px; cursor: pointer; transition: transform 0.2s ease; margin-left: 2px;">▼</span>
+                    </div>
+                  </div>
+                  <div class="pattern-description-expanded" style="display: none; font-size: 11px; color: var(--text-secondary); margin-top: 6px; border-top: 1px dashed rgba(84, 180, 53, 0.15); padding-top: 6px; line-height: 1.4;">
+                    Zen Custom: Plays custom targets based on last spin mapping. Define your triggers and targets in the Zen Custom configuration panel below.
+                  </div>
+                </div>
+
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
+                <button id="zrr-pattern-download-btn" class="btn secondary small pattern-action-btn" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">Download</button>
+                <button id="zrr-pattern-import-btn" class="btn secondary small pattern-action-btn" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">Import</button>
+                <button id="zrr-pattern-share-btn" class="btn secondary small pattern-action-btn" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">Share</button>
+                <button id="zrr-pattern-ai-btn" class="btn secondary small pattern-action-btn" style="flex: 1; font-size: 11px; font-weight: 700; text-transform: uppercase;">AI</button>
+              </div>
+              <input type="file" id="zrr-pattern-import-file" style="display: none;" accept=".json" />
+            </div>
+          </div>
+
+          <!-- Custom Preference Mapping Settings Card -->
+          <div class="card settings-card draggable-card" id="zrr-custom-pref-card" style="border-color: rgba(84, 180, 53, 0.25);">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="collapse-arrow">▲</span>
+                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Custom</h2>
+              </div>
+              <div class="card-header-controls">
+                <span class="card-control-btn move-up" title="Move Up">▲</span>
+                <span class="card-control-btn move-down" title="Move Down">▼</span>
+              </div>
+            </div>
+            <div class="card-content" style="margin-top: 8px;">
+              <!-- 37 Numbers Grid -->
+              <div id="zrr-pref-grid" style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; max-width: 100%;">
+                <!-- Dynamic grid of 0-36 populated by JS -->
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 8px; font-size: 11px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="color: var(--text-secondary); font-weight: 600;">If Spin is:</span>
+                  <span id="zrr-pref-selected-display" class="number-badge green" style="width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px;">0</span>
+                </div>
+                <span style="color: var(--text-secondary); font-weight: 600;">Then recommend (Max 4):</span>
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 10px; justify-content: center; align-items: center;">
+                <input type="number" class="zrr-pref-target-input" data-index="0" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="1" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="2" min="0" max="36" placeholder="-" />
+                <input type="number" class="zrr-pref-target-input" data-index="3" min="0" max="36" placeholder="-" />
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 10px; margin-top: 12px; width: 100%;">
+                <button id="zrr-pref-export-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Export Config</button>
+                <button id="zrr-pref-import-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Import Config</button>
+                <input type="file" id="zrr-pref-import-file" style="display: none;" accept=".json" />
+              </div>
+            </div>
+          </div>
+            <!-- Zen AI Assistant Section (Lightning) -->
+            <div class="card math-card draggable-card" id="zrr-gemini-card-lt" style="border-color: rgba(147, 51, 234, 0.25); margin-top: 12px;">
+              <div class="card-header">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="collapse-arrow">▲</span>
+                  <h2 style="margin:0; font-size:12px; border-left: 3px solid #a855f7; padding-left: 6px; display: flex; align-items: center; gap: 6px; color: var(--text-main);">
+                    <span id="zrr-gemini-status-dot-lt" class="agent-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; transition: all 0.3s ease;"></span>
+                    Zen AI Assistant (Lightning)
+                  </h2>
+                </div>
+                <div class="card-header-controls">
+                  <label class="switch" style="margin-right: 4px;">
+                    <input type="checkbox" id="zrr-gemini-toggle-lt" class="zrr-gemini-toggle-input">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="card-control-btn move-up" title="Move Up">▲</span>
+                  <span class="card-control-btn move-down" title="Move Down">▼</span>
+                </div>
+              </div>
+
+              <div class="card-content">
+                <!-- Configuration Settings (collapsed when connected) -->
+                <div id="zrr-gemini-config-lt" class="zrr-gemini-config-panel" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Enter your Gemini API key or connect your account:</div>
+                  <div style="display: flex; gap: 6px;">
+                    <input type="password" id="zrr-gemini-key-lt" class="zrr-gemini-key-input" placeholder="Paste Gemini API Key..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                    <button id="zrr-gemini-save-btn-lt" class="btn small zrr-gemini-save-btn-input" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Save</button>
+                  </div>
+                  <div style="text-align: center; font-size: 10px; color: var(--muted); margin: 2px 0;">— OR —</div>
+                  <button id="zrr-gemini-google-btn-lt" class="btn secondary small zrr-gemini-google-btn-input" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 11px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    Connect with Google
+                  </button>
+                </div>
+
+                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                  <span>AI Assistant Chat</span>
+                  <span class="zrr-gemini-model-badge" style="color: #a855f7; font-size: 9px; text-transform: uppercase;">Offline</span>
+                </div>
+
+                <!-- Chatbox Feed -->
+                <div class="zrr-gemini-chat-history" style="margin-top: 4px; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(147, 51, 234, 0.15); font-size: 11px;">
+                  <div class="zrr-gemini-chat-msg system-msg" style="color: var(--text-secondary); font-style: italic;">
+                    Assistant is on standby... Ask me anything.
+                  </div>
+                </div>
+
+                <div class="zrr-gemini-chat-input-row" style="margin-top: 6px; display: flex; gap: 6px;">
+                  <input type="text" class="zrr-gemini-chat-input" placeholder="Type your question here..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
+                  <button class="btn small zrr-gemini-chat-send-btn" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Send</button>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
+
       <!-- DASHBOARD TAB CONTENT -->
-      <section id="dashboardContent" class="tab-content active">
+      <section id="dashboardContent" class="tab-content">
         <!-- Auth Lock Shield -->
         <div id="dashboardLocked" class="locked-overlay">
           <p>Please login to your Account to unlock the Live ZenRoulette Assistant dashboard features.</p>
@@ -1787,7 +2374,7 @@
         </div>
 
         <div id="dashboardUnlocked" style="display: none; flex-direction: column; gap: 12px;">
-          
+
           <div id="dashboardCardsContainer" class="cards-list" style="display: flex; flex-direction: column; gap: 12px;">
             <!-- Wheel Canvas Card -->
             <div class="card forest-card wheel-card draggable-card" id="zrr-wheel-card">
@@ -1801,7 +2388,7 @@
                   <span class="card-control-btn move-down" title="Move Down">▼</span>
                 </div>
               </div>
-              
+
               <div class="card-content">
                 <div class="dashboard-top-grid">
                   <div class="tracked-inline">
@@ -1865,7 +2452,7 @@
                   <span class="card-control-btn move-down" title="Move Down">▼</span>
                 </div>
               </div>
-              
+
               <div class="card-content">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
                   <div>
@@ -1909,7 +2496,7 @@
                 <!-- Output calculations -->
                 <div id="zrr-math-outputs">
                   <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Optimal Bet Recommendation</div>
-                  
+
                   <div style="display: flex; flex-direction: column; gap: 6px;">
                     <!-- Standard numbers -->
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
@@ -2037,331 +2624,6 @@
         </div>
       </section>
 
-      <!-- LIGHTNING TAB CONTENT -->
-      <section id="lightningContent" class="tab-content">
-        <!-- Auth Lock Shield -->
-        <div id="lightningLocked" class="locked-overlay">
-          <p>Please login to your Account to unlock the Live ZenRoulette Assistant dashboard features.</p>
-          <button class="btn go-to-login-btn">Go to Login</button>
-        </div>
-
-        <div id="lightningUnlocked" class="cards-list" style="display: none; flex-direction: column; gap: 12px;">
-          <!-- Wheel Canvas Card -->
-          <div class="card wheel-card draggable-card" id="zrr-wheel-card-lt">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="collapse-arrow">▲</span>
-                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Roulette Wheel (Lightning)</h2>
-              </div>
-              <div class="card-header-controls">
-                <span class="card-control-btn move-up" title="Move Up">▲</span>
-                <span class="card-control-btn move-down" title="Move Down">▼</span>
-              </div>
-            </div>
-            
-            <div class="card-content">
-              <div class="dashboard-top-grid">
-                <div class="tracked-inline">
-                  <div class="rail-head"><span class="rail-icon pattern" title="Pattern Tracker (Active Patterns)">PT</span></div>
-                  <div id="zrr-last-four-numbers-lt" class="rail-stack zrr-last-four-numbers-lt"></div>
-                </div>
-                <div class="wheel-main">
-                  <!-- Clumping Strength Indicator -->
-                  <div id="zrr-clumping-indicator-lt" style="display: none; position: absolute; top: 12px; left: 0; right: 0; justify-content: center; align-items: center; font-size: 10px; font-weight: 700; text-align: center; pointer-events: none; width: 100%;">
-                    <span id="zrr-clumping-value-lt" style="color: #ffcc00;">Low (0%)</span>
-                  </div>
-                  <!-- Canvas Wrapper -->
-                  <div class="canvas-wrapper" style="position: relative; display: flex; justify-content: center; align-items: center; width: 220px; height: 220px; margin-top: 26px;">
-                    <canvas id="canvas-lt" width="220" height="220"></canvas>
-                    <div id="wheel-center-chip-lt" class="wheel-center-chip"></div>
-                  </div>
-                  <div id="zrr-gold-rail-lt" class="gold-rail">
-                    <div id="zrr-gold-numbers-lt" class="gold-number-row"></div>
-                  </div>
-                </div>
-                <div class="tracked-inline">
-                  <div class="rail-head"><span class="rail-icon jp" title="Jackpot numbers">JP</span></div>
-                  <div id="zrr-jackpot-four-numbers-lt" class="rail-stack zrr-jackpot-four-numbers-lt"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recommendation Alert Card -->
-          <div class="card strategy-card draggable-card" id="zrr-strategy-card-lt">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="collapse-arrow">▲</span>
-                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Assistant Strategy</h2>
-              </div>
-              <div class="card-header-controls">
-                <span class="card-control-btn move-up" title="Move Up">▲</span>
-                <span class="card-control-btn move-down" title="Move Down">▼</span>
-              </div>
-            </div>
-            <div class="card-content">
-              <div id="zrr-recommendation-lt" class="recommendation-alert clickable zrr-recommendation-lt" style="margin-top: 8px;">
-                Waiting for live game roulette data... (Click to Reconnect)
-              </div>
-              <div id="zrr-bet-numbers-lt" class="strategy-output zrr-bet-numbers-lt">
-              </div>
-              <div id="zrr-high-stake-numbers-lt" class="zrr-high-stake-numbers-lt" style="font-size: 13px; font-weight: 700; color: #ffcc00; text-align: center; margin-top: 4px;">
-              </div>
-            </div>
-          </div>
-
-          <!-- Zen Exit Strategy & Bet Calculator -->
-          <div class="card math-card draggable-card" id="zrr-math-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="collapse-arrow">▲</span>
-                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Zen Exit Strategy (Lightning)</h2>
-              </div>
-              <div class="card-header-controls">
-                <span class="card-control-btn move-up" title="Move Up">▲</span>
-                <span class="card-control-btn move-down" title="Move Down">▼</span>
-              </div>
-            </div>
-            <div class="card-content">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
-                <div>
-                  <label for="zrr-math-budget-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Current Balance (RON)</label>
-                  <input type="number" id="zrr-math-budget-lt" value="1000" min="1" step="1" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
-                </div>
-                <div>
-                  <label for="zrr-math-profit-percent-lt" style="display: block; font-size: 10px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Target Profit (%)</label>
-                  <input type="number" id="zrr-math-profit-percent-lt" value="30" min="1" max="500" step="5" style="width:100%; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:12px; font-weight:700;" />
-                </div>
-              </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px;">
-                <div>
-                  <label for="zrr-math-unit-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Nomination Unit</label>
-                  <select id="zrr-math-unit-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
-                    <option value="0.5">0.5 RON</option>
-                    <option value="1" selected>1 RON</option>
-                    <option value="2">2 RON</option>
-                    <option value="5">5 RON</option>
-                    <option value="10">10 RON</option>
-                    <option value="20">20 RON</option>
-                    <option value="50">50 RON</option>
-                    <option value="100">100 RON</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="zrr-math-min-spins-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Min Spins</label>
-                  <input type="number" id="zrr-math-min-spins-lt" value="20" min="5" max="100" step="1" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;" />
-                </div>
-                <div>
-                  <label for="zrr-math-multiplier-lt" style="display: block; font-size: 9px; margin-bottom: 4px; color: var(--text-secondary); font-weight: 600;">Sim Multiplier</label>
-                  <select id="zrr-math-multiplier-lt" style="width:100%; padding: 6px 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size:11px; font-weight:700;">
-                    <option value="30">30x (No Mult)</option>
-                    <option value="50">50x</option>
-                    <option value="100" selected>100x</option>
-                    <option value="200">200x</option>
-                    <option value="300">300x</option>
-                    <option value="400">400x</option>
-                    <option value="500">500x</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Target Display Line -->
-              <div style="background: rgba(255, 204, 0, 0.06); border: 1px solid rgba(255, 204, 0, 0.15); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
-                <span style="color: var(--text-secondary); font-weight: 600;">Target Exit Balance:</span>
-                <span id="zrr-math-exit-target-lt" class="zrr-math-exit-target-lt" style="color: var(--accent); font-weight: 800; font-size: 12px;">1300.00 RON</span>
-              </div>
-
-              <hr style="border: 0; border-top: 1px solid rgba(255, 204, 0, 0.15); margin: 6px 0;" />
-
-              <!-- Output calculations -->
-              <div id="zrr-math-outputs-lt">
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-main); text-align: center; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Optimal Bet Recommendation</div>
-                
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <!-- Standard numbers -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                    <span style="display: inline-flex; align-items: center; gap: 6px;">
-                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2b741b; border: 1px solid var(--border);"></span>
-                      <span>Standard Cover (<span id="zrr-math-std-count-lt" class="zrr-math-std-count-lt">0</span> numbers)</span>
-                    </span>
-                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-std-bet-lt" class="zrr-math-std-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-std-total-lt" class="zrr-math-std-total-lt">0.00</span>)</span></span>
-                  </div>
-
-                  <!-- Golden numbers -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                    <span style="display: inline-flex; align-items: center; gap: 6px;">
-                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ffd84d; border: 1px solid #ffd84d;"></span>
-                      <span>Golden Overlaps (<span id="zrr-math-gold-count-lt" class="zrr-math-gold-count-lt">0</span> numbers)</span>
-                    </span>
-                    <span style="font-weight: 700; color: #ffd84d;"><span id="zrr-math-gold-bet-lt" class="zrr-math-gold-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-gold-total-lt" class="zrr-math-gold-total-lt">0.00</span>)</span></span>
-                  </div>
-
-                  <!-- Jackpot targets -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
-                    <span style="display: inline-flex; align-items: center; gap: 6px;">
-                      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #3399ff; border: 1px solid #3399ff;"></span>
-                      <span>Jackpot Targets (<span id="zrr-math-jp-count-lt" class="zrr-math-jp-count-lt">0</span> numbers)</span>
-                    </span>
-                    <span style="font-weight: 700; color: #3399ff;"><span id="zrr-math-jp-bet-lt" class="zrr-math-jp-bet-lt">0.00</span> RON <span style="font-weight: 500; font-size:9px; color: var(--muted);">/ea (Total: <span id="zrr-math-jp-total-lt" class="zrr-math-jp-total-lt">0.00</span>)</span></span>
-                  </div>
-
-                  <!-- Total bet line -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; border-top: 1px dashed rgba(255, 204, 0, 0.25); padding-top: 6px; margin-top: 2px;">
-                    <span>TOTAL BET PER ROUND</span>
-                    <span style="color: var(--accent);"><span id="zrr-math-total-bet-lt" class="zrr-math-total-bet-lt">0.00</span> RON</span>
-                  </div>
-                </div>
-
-                <!-- Strategy Performance Metrics -->
-                <div style="margin-top: 8px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span style="color: var(--muted);">Survival Capability:</span>
-                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-survival-spins-lt" class="zrr-math-survival-spins-lt">0</span> losing spins</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span style="color: var(--muted);">Standard Win Net Profit:</span>
-                    <span id="zrr-math-std-profit-val-lt" class="zrr-math-std-profit-val-lt" style="font-weight: 700;">0.00 RON</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span style="color: var(--muted);">Golden Win Net Profit:</span>
-                    <span id="zrr-math-gold-profit-val-lt" class="zrr-math-gold-profit-val-lt" style="font-weight: 700; color:#ffd84d;">0.00 RON</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                    <span style="color: var(--muted);">Jackpot Win Net Profit:</span>
-                    <span id="zrr-math-jp-profit-val-lt" class="zrr-math-jp-profit-val-lt" style="font-weight: 700; color:#3399ff;">0.00 RON</span>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; font-size: 10px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px; margin-top: 2px;">
-                    <span style="color: var(--text-secondary); font-weight:600;">Required Hits to Exit:</span>
-                    <span style="font-weight: 700; color: var(--text-main);"><span id="zrr-math-hits-to-exit-lt" class="zrr-math-hits-to-exit-lt">0</span> JP hits</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active Patterns Toggles -->
-          <div class="card settings-card draggable-card" id="zrr-settings-card-lt" style="border-color: rgba(255, 204, 0, 0.25);">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="collapse-arrow">▲</span>
-                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Active Patterns (Lightning)</h2>
-              </div>
-              <div class="card-header-controls">
-                <span class="card-control-btn move-up" title="Move Up">▲</span>
-                <span class="card-control-btn move-down" title="Move Down">▼</span>
-              </div>
-            </div>
-            <div class="card-content">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; font-size: 11px;">
-                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Zero Rule: Recommend neighbors of predecessor when zero is spun">
-                  <input type="checkbox" id="zrr-toggle-zero" checked style="accent-color: var(--accent);" /> Zero Rule
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Repeat Rule: Recommends playing repeating duplicate numbers">
-                  <input type="checkbox" id="zrr-toggle-rep" checked style="accent-color: var(--accent);" /> Repeat Pattern
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Consecutive Rule: Recommends playing consecutive numbers neighbors">
-                  <input type="checkbox" id="zrr-toggle-cns" checked style="accent-color: var(--accent);" /> Consecutive Pattern
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; color:var(--text-secondary); cursor:pointer;" title="Preference Mapping: Plays custom targets based on last spin (1-18)">
-                  <input type="checkbox" id="zrr-toggle-pref" checked style="accent-color: var(--accent);" /> Preference Mapping
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Custom Preference Mapping Settings Card -->
-          <div class="card settings-card draggable-card" id="zrr-custom-pref-card" style="border-color: rgba(84, 180, 53, 0.25); display: none;">
-            <div class="card-header">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="collapse-arrow">▲</span>
-                <h2 style="margin:0; font-size:12px; border-left: 3px solid var(--accent); padding-left: 6px; color: var(--text-main);">Custom Preference Mapping</h2>
-              </div>
-              <div class="card-header-controls">
-                <span class="card-control-btn move-up" title="Move Up">▲</span>
-                <span class="card-control-btn move-down" title="Move Down">▼</span>
-              </div>
-            </div>
-            <div class="card-content" style="margin-top: 8px;">
-              <!-- 37 Numbers Grid -->
-              <div id="zrr-pref-grid" style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 12px; max-width: 100%;">
-                <!-- Dynamic grid of 0-36 populated by JS -->
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 8px; font-size: 11px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="color: var(--text-secondary); font-weight: 600;">If Spin is:</span>
-                  <span id="zrr-pref-selected-display" class="number-badge green" style="width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px;">0</span>
-                </div>
-                <span style="color: var(--text-secondary); font-weight: 600;">Then recommend (Max 4):</span>
-              </div>
-              <div style="display: flex; gap: 12px; margin-top: 10px; justify-content: center; align-items: center;">
-                <input type="number" class="zrr-pref-target-input" data-index="0" min="0" max="36" placeholder="-" />
-                <input type="number" class="zrr-pref-target-input" data-index="1" min="0" max="36" placeholder="-" />
-                <input type="number" class="zrr-pref-target-input" data-index="2" min="0" max="36" placeholder="-" />
-                <input type="number" class="zrr-pref-target-input" data-index="3" min="0" max="36" placeholder="-" />
-              </div>
-              <div style="display: flex; gap: 8px; justify-content: space-between; border-top: 1px dashed rgba(84, 180, 53, 0.2); padding-top: 10px; margin-top: 12px; width: 100%;">
-                <button id="zrr-pref-export-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Export Config</button>
-                <button id="zrr-pref-import-btn" class="btn" style="padding: 6px 10px; font-size: 11px; background: rgba(84, 180, 53, 0.15); border: 1px solid rgba(84, 180, 53, 0.3); color: #8fc55e; border-radius: 4px; cursor: pointer; flex: 1; font-weight: 700; text-transform: uppercase;">Import Config</button>
-                <input type="file" id="zrr-pref-import-file" style="display: none;" accept=".json" />
-              </div>
-            </div>
-          </div>
-            <!-- Zen AI Assistant Section (Lightning) -->
-            <div class="card math-card draggable-card" id="zrr-gemini-card-lt" style="border-color: rgba(147, 51, 234, 0.25); margin-top: 12px;">
-              <div class="card-header">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span class="collapse-arrow">▲</span>
-                  <h2 style="margin:0; font-size:12px; border-left: 3px solid #a855f7; padding-left: 6px; display: flex; align-items: center; gap: 6px; color: var(--text-main);">
-                    <span id="zrr-gemini-status-dot-lt" class="agent-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; transition: all 0.3s ease;"></span>
-                    Zen AI Assistant (Lightning)
-                  </h2>
-                </div>
-                <div class="card-header-controls">
-                  <label class="switch" style="margin-right: 4px;">
-                    <input type="checkbox" id="zrr-gemini-toggle-lt" class="zrr-gemini-toggle-input">
-                    <span class="slider"></span>
-                  </label>
-                  <span class="card-control-btn move-up" title="Move Up">▲</span>
-                  <span class="card-control-btn move-down" title="Move Down">▼</span>
-                </div>
-              </div>
-
-              <div class="card-content">
-                <!-- Configuration Settings (collapsed when connected) -->
-                <div id="zrr-gemini-config-lt" class="zrr-gemini-config-panel" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-                  <div style="font-size: 11px; color: var(--text-secondary);">Enter your Gemini API key or connect your account:</div>
-                  <div style="display: flex; gap: 6px;">
-                    <input type="password" id="zrr-gemini-key-lt" class="zrr-gemini-key-input" placeholder="Paste Gemini API Key..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
-                    <button id="zrr-gemini-save-btn-lt" class="btn small zrr-gemini-save-btn-input" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Save</button>
-                  </div>
-                  <div style="text-align: center; font-size: 10px; color: var(--muted); margin: 2px 0;">— OR —</div>
-                  <button id="zrr-gemini-google-btn-lt" class="btn secondary small zrr-gemini-google-btn-input" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 11px;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-                    Connect with Google
-                  </button>
-                </div>
-
-                <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
-                  <span>AI Assistant Chat</span>
-                  <span class="zrr-gemini-model-badge" style="color: #a855f7; font-size: 9px; text-transform: uppercase;">Offline</span>
-                </div>
-                
-                <!-- Chatbox Feed -->
-                <div class="zrr-gemini-chat-history" style="margin-top: 4px; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(147, 51, 234, 0.15); font-size: 11px;">
-                  <div class="zrr-gemini-chat-msg system-msg" style="color: var(--text-secondary); font-style: italic;">
-                    Assistant is on standby... Ask me anything.
-                  </div>
-                </div>
-
-                <div class="zrr-gemini-chat-input-row" style="margin-top: 6px; display: flex; gap: 6px;">
-                  <input type="text" class="zrr-gemini-chat-input" placeholder="Type your question here..." style="flex:1; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); font-size: 11px; outline: none;" />
-                  <button class="btn small zrr-gemini-chat-send-btn" style="background:#a855f7; border:none; color:#fff; padding:6px 12px; font-weight:700; border-radius:4px; cursor:pointer; width: auto; font-size: 11px; text-transform: uppercase;">Send</button>
-                </div>
-              </div>
-            </div>
-      </section>
-
       <!-- SESSION TAB CONTENT -->
       <section id="sessionContent" class="tab-content">
         <!-- Auth Lock Shield -->
@@ -2414,6 +2676,10 @@
             <div id="zrr-play-information" class="hands-list">
               <div class="msg">No rounds recorded yet in this session.</div>
             </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; margin-bottom: 8px; border: 1px dashed rgba(84, 180, 53, 0.2); border-radius: 6px; padding: 6px; background: rgba(255, 255, 255, 0.02);">
+              <input type="checkbox" id="zrr-record-session-toggle" style="accent-color: var(--accent); cursor: pointer; margin: 0;" />
+              <label for="zrr-record-session-toggle" style="font-size: 11px; color: var(--text-secondary); cursor: pointer; user-select: none; margin: 0; font-weight: 500;">Record video of the session (Extension Screen)</label>
+            </div>
             <div class="session-controls">
               <button id="zrr-start-session" class="btn small">Start Session</button>
               <button id="zrr-end-session" class="btn secondary small" disabled>End Session</button>
@@ -2441,6 +2707,146 @@
           </div>
         </div>
       </section>
+      <!-- STRATEGIES (TRADINGVIEW) TAB CONTENT -->
+      <section id="strategiesContent" class="tab-content">
+        <!-- Sub navigation -->
+        <div class="sub-tab-nav" style="display:flex; gap:8px; margin-bottom:12px; border-bottom:1px solid rgba(84, 180, 53, 0.15); padding-bottom:8px;">
+          <button id="tv-subtab-my" class="btn small" style="flex:1;">My Strategies</button>
+          <button id="tv-subtab-community" class="btn secondary small" style="flex:1;">Community Feed</button>
+        </div>
+
+        <!-- MY STRATEGIES VIEW -->
+        <div id="tv-my-strategies-view">
+          <div class="btn-row" style="margin-bottom:12px;">
+            <button id="tv-create-strategy-btn" class="btn" style="width:100%;">+ Create Custom Strategy</button>
+          </div>
+          <div id="tv-my-list" class="hands-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- STRATEGIES BUILDER VIEW -->
+        <div id="tv-builder-view" class="card" style="display:none; padding:12px;">
+          <h2 id="tv-builder-title" class="card-header-title">Create Strategy</h2>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+            <div>
+              <label for="tv-strat-name">Strategy Name</label>
+              <input type="text" id="tv-strat-name" placeholder="e.g. Red Overlay, CNS neighbors" />
+            </div>
+            <div>
+              <label for="tv-strat-desc">Description</label>
+              <textarea id="tv-strat-desc" placeholder="Brief strategy details..." style="min-height:50px; resize:vertical;"></textarea>
+            </div>
+            <div>
+              <label for="tv-strat-type">Trigger Type</label>
+              <select id="tv-strat-type" style="width:100%; background:var(--input-bg); color:var(--text-main); border:1px solid rgba(84, 180, 53, 0.2); border-radius:4px; padding:6px; font-size:12px;">
+                <option value="pref">Custom Map (Preference Mapping)</option>
+                <option value="cns">Consecutive Neighbors (CNS)</option>
+                <option value="rep">Recent Repeat Tracker (REP)</option>
+                <option value="zero">Zero Neighbors Rule (ZERO)</option>
+              </select>
+            </div>
+
+            <!-- Dynamic parameters -->
+            <div id="tv-param-lookback-group" style="display:none;">
+              <label for="tv-strat-lookback" id="tv-lookback-label">Lookback Window (spins)</label>
+              <input type="number" id="tv-strat-lookback" value="8" min="2" max="20" />
+            </div>
+
+            <!-- Custom Map interactive editor -->
+            <div id="tv-map-editor-group">
+              <label style="color:var(--accent); font-weight:bold;">1. Click trigger number:</label>
+              <div id="tv-trigger-grid" class="tv-number-grid"></div>
+
+              <div id="tv-map-targets-container" style="display:none; margin-top:8px; border-top: 1px dashed rgba(84, 180, 53, 0.15); padding-top:8px;">
+                <label id="tv-map-targets-label" style="color:var(--accent); font-weight:bold;">2. Set targets for trigger -- :</label>
+                <div id="tv-map-targets-grid" class="tv-number-grid" style="margin-top:4px;"></div>
+              </div>
+            </div>
+
+            <!-- General Target numbers selection for other trigger types -->
+            <div id="tv-general-targets-group" style="display:none;">
+              <label style="color:var(--accent); font-weight:bold;">Select Target Numbers to Bet:</label>
+              <div id="tv-general-targets-grid" class="tv-number-grid" style="margin-top:4px;"></div>
+            </div>
+
+            <div class="btn-row" style="margin-top:10px;">
+              <button id="tv-save-strategy-btn" class="btn small">Save Strategy</button>
+              <button id="tv-cancel-builder-btn" class="btn secondary small">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STRATEGIES BACKTESTER VIEW -->
+        <div id="tv-backtest-view" style="display:none;">
+          <div class="card" style="padding:10px;">
+            <h2 id="tv-backtest-title" class="card-header-title">Backtest Results</h2>
+            <div class="tv-stats-grid" style="display:flex; justify-content:space-between; gap:8px; margin-top:10px;">
+              <div class="card" style="flex:1; padding:6px; text-align:center; border-color:rgba(84, 180, 53, 0.15);">
+                <div style="font-size:10px; color:var(--text-secondary);">Win Rate</div>
+                <div id="tv-backtest-winrate" style="font-size:16px; font-weight:bold; color:var(--accent);">0.0%</div>
+              </div>
+              <div class="card" style="flex:1; padding:6px; text-align:center; border-color:rgba(84, 180, 53, 0.15);">
+                <div style="font-size:10px; color:var(--text-secondary);">Net Profit</div>
+                <div id="tv-backtest-profit" style="font-size:16px; font-weight:bold; color:#ef4444;">0 units</div>
+              </div>
+              <div class="card" style="flex:1; padding:6px; text-align:center; border-color:rgba(84, 180, 53, 0.15);">
+                <div style="font-size:10px; color:var(--text-secondary);">Triggers</div>
+                <div id="tv-backtest-triggers" style="font-size:16px; font-weight:bold; color:var(--text-main);">0/0</div>
+              </div>
+            </div>
+
+            <!-- Equity chart canvas -->
+            <canvas id="tv-equity-canvas" width="410" height="180" style="background:var(--card); border-radius:var(--radius); border:1px solid rgba(84, 180, 53, 0.15); margin:10px 0; width:100%; display:block;"></canvas>
+
+            <div class="btn-row" style="margin-bottom:8px;">
+              <button id="tv-back-to-list-btn" class="btn small" style="width:100%;">Back to List</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:10px; padding:10px;">
+            <h2>Trigger Transactions</h2>
+            <div class="tv-log-container" style="max-height:160px; overflow-y:auto; font-size:11px; margin-top:6px;">
+              <table style="width:100%; border-collapse:collapse; text-align:left;">
+                <thead>
+                  <tr style="border-bottom:1px solid rgba(84, 180, 53, 0.15); color:var(--text-secondary);">
+                    <th style="padding:4px;">Spin</th>
+                    <th style="padding:4px;">Trigger</th>
+                    <th style="padding:4px;">Bet Size</th>
+                    <th style="padding:4px;">Winner</th>
+                    <th style="padding:4px;">Result</th>
+                  </tr>
+                </thead>
+                <tbody id="tv-backtest-log-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMMUNITY LIBRARY VIEW -->
+        <div id="tv-community-view" style="display:none;">
+          <div class="card" style="padding:10px; margin-bottom:12px;">
+            <h2>Filter & Search</h2>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <select id="tv-community-sort" style="flex:2; background:var(--input-bg); color:var(--text-main); border:1px solid rgba(84, 180, 53, 0.2); border-radius:4px; padding:6px; font-size:11px;">
+                <option value="newest">Newest Strategies</option>
+                <option value="views">Most Viewed</option>
+                <option value="replies">Most Popular</option>
+                <option value="followed">Followed Creators</option>
+              </select>
+              <button id="tv-community-refresh-btn" class="btn small" style="flex:1;">Refresh</button>
+            </div>
+          </div>
+          <div id="tv-community-locked" class="card" style="text-align:center; padding:20px;">
+            <p>Please login to your Account under the Account tab (A) to access the Community Strategy Library.</p>
+          </div>
+          <div id="tv-community-list" class="hands-list" style="display:none;">
+            <!-- Shared strategies feed -->
+          </div>
+        </div>
+      </section>
 
       <!-- ACCOUNT TAB CONTENT -->
       <section id="accountContent" class="tab-content">
@@ -2458,7 +2864,7 @@
             </div>
             <button id="zrr-login-btn" class="btn" style="margin-top: 6px;">Sign In</button>
             <div id="zrr-login-error" class="error-box"></div>
-            
+
             <div style="text-align: center; margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
               Not a ZenRoulette Tribe member yet?
               <a href="#" id="zrr-signup-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">Join over 2,000 members for free</a>
@@ -2478,7 +2884,7 @@
               <span class="info-label">Membership Type</span>
               <span id="zrr-membership" class="info-val" style="color: var(--accent);">TRIBE Member</span>
             </div>
-            
+
             <button id="zrr-logout-btn" class="btn secondary" style="margin-top: 6px;">Sign Out</button>
           </div>
         </div>
@@ -2502,7 +2908,10 @@
           <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
             <div>
               <label for="zrr-license-email">License Email</label>
-              <input type="email" id="zrr-license-email" placeholder="name@email.com" />
+              <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                <input type="email" id="zrr-license-email" placeholder="name@email.com" style="padding-right: 75px; flex: 1; box-sizing: border-box;" />
+                <button id="zrr-license-request-btn" class="btn secondary" style="position: absolute; right: 4px; top: 4px; bottom: 4px; padding: 0 10px; font-size: 11px; margin: 0; display: flex; align-items: center; justify-content: center; width: auto; text-transform: uppercase;">Request</button>
+              </div>
             </div>
             <div>
               <label for="zrr-license-code">Long License Code</label>
@@ -2510,7 +2919,10 @@
             </div>
             <div class="btn-row" style="margin-top: 2px;">
               <button id="zrr-license-buy-btn" class="btn small">Buy 24h License</button>
-              <button id="zrr-license-request-btn" class="btn secondary small">Request from Admin</button>
+              <button id="zrr-license-buy-30-btn" class="btn small">Buy 30 Days</button>
+            </div>
+            <div style="font-size: 11px; text-align: center; color: var(--text-secondary); margin-top: 4px; font-style: italic;">
+              Limited time price: 10 euro per day and 200 euro per month
             </div>
             <button id="zrr-license-activate-btn" class="btn">Activate License</button>
             <div id="zrr-license-status" class="error-box" style="display:block; min-height:18px;"></div>

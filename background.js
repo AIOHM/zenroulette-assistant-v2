@@ -369,7 +369,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
 
-  if (["update-dashboard", "logout", "manual-bet"].includes(request.type)) {
+  if (["update-dashboard", "logout", "manual-bet", "update-pattern-order", "update-pattern-settings"].includes(request.type)) {
     handleUpdateDashboard(request, sendResponse);
     return false;
   } else if (request.type === "update-dashboard-ui" || request.type === "update-play") {

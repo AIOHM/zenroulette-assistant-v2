@@ -1,7 +1,19 @@
 // ✅ top.js for ZenRoulette Assistant side panel
 (function () {
   if (typeof chrome === "undefined" || !chrome.runtime) {
-    const previewStorage = {};
+    const previewDeviceId = "zri-preview-demo-0001";
+    const previewStorage = {
+      authenticated: true,
+      email: "demo@zenroulette.com",
+      membership: "tribe",
+      zrrInstallationId: previewDeviceId,
+      zrrLicense: {
+        email: "demo@zenroulette.com",
+        deviceId: previewDeviceId,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        source: "preview"
+      }
+    };
     const runtimeListeners = [];
 
     const ensureCallback = (cb, payload) => {
@@ -106,7 +118,8 @@
     };
   }
 
-  const IS_PREVIEW_MODE = !chrome.runtime || !chrome.runtime.id;
+  const IS_LOCAL_PREVIEW_HOST = ["127.0.0.1", "localhost", "::1"].includes(window.location.hostname);
+  const IS_PREVIEW_MODE = IS_LOCAL_PREVIEW_HOST || !chrome.runtime || !chrome.runtime.id;
 
   var playData = [];
   var allSessions = 0;
@@ -175,9 +188,12 @@
   var cachedDuplicatesLt = new Set();
   var cachedIsWaitRoundLt = true;
   var lastPatternChipStatesLt = { ZERO: false, REP: false, CNS: false, PREF: false };
-  var activeCanvasId = "canvas";
+  var activeCanvasId = "canvas-lt";
   var enabledPatternsLt = { zero: true, rep: true, cns: true, pref: true };
   var customPrefMappingLt = {};
+  var lastRecentNumbersJoinLt = "";
+  var patternTriggerHistoryLt = [];
+  var patternOrderLt = ["ZERO", "PREF", "CNS", "REP"];
   var lastPatternReport = null;
   var currentTableType = "UNKNOWN";
   var multiplierHitCount = 0;
@@ -238,11 +254,13 @@
   const lightningTab = document.getElementById("lightningTab");
   const sessionTab = document.getElementById("sessionTab");
   const accountTab = document.getElementById("accountTab");
+  const strategiesTab = document.getElementById("strategiesTab");
 
   const dashboardContent = document.getElementById("dashboardContent");
   const lightningContent = document.getElementById("lightningContent");
   const sessionContent = document.getElementById("sessionContent");
   const accountContent = document.getElementById("accountContent");
+  const strategiesContent = document.getElementById("strategiesContent");
 
   const dashboardLocked = document.getElementById("dashboardLocked");
   const dashboardUnlocked = document.getElementById("dashboardUnlocked");
@@ -534,6 +552,26 @@
       helper: "live log",
       note: "logging"
     });
+
+    // Magic message to AI assistant
+    document.querySelectorAll(".zrr-gemini-chat-history").forEach(history => {
+      const standbyMsg = history.querySelector(".system-msg");
+      if (standbyMsg) standbyMsg.remove();
+
+      const sysBubble = document.createElement("div");
+      sysBubble.style.cssText = "align-self: center; background: rgba(84, 180, 53, 0.1); border: 1px dashed rgba(84, 180, 53, 0.3); border-radius: 6px; padding: 6px 8px; text-align: center; color: var(--text-main); font-size: 11px; margin-bottom: 8px; width: 90%;";
+      sysBubble.innerHTML = `🔮 <b>Zen Session Activated!</b><br>AI Assistant is online and registering live spins. Click on any pattern chip or setting to explain it in real time!`;
+      history.appendChild(sysBubble);
+      history.scrollTop = history.scrollHeight;
+    });
+
+    // Handle auto-recording option
+    const autoRecordCheck = document.getElementById("zrr-record-session-toggle");
+    if (autoRecordCheck && autoRecordCheck.checked) {
+      setTimeout(() => {
+        startSessionRecording().catch(err => console.error("Auto recording failed:", err));
+      }, 300);
+    }
   }
 
   function endSession() {
@@ -551,10 +589,10 @@
 
   // Tab switching
   function switchTab(tabId) {
-    [dashboardTab, lightningTab, sessionTab, accountTab].forEach(btn => {
+    [dashboardTab, lightningTab, sessionTab, accountTab, strategiesTab].forEach(btn => {
       if (btn) btn.classList.remove("active");
     });
-    [dashboardContent, lightningContent, sessionContent, accountContent].forEach(sec => {
+    [dashboardContent, lightningContent, sessionContent, accountContent, strategiesContent].forEach(sec => {
       if (sec) sec.classList.remove("active");
     });
 
@@ -576,6 +614,16 @@
     } else if (tabId === "account") {
       accountTab.classList.add("active");
       accountContent.classList.add("active");
+    } else if (tabId === "strategies") {
+      if (strategiesTab) strategiesTab.classList.add("active");
+      if (strategiesContent) strategiesContent.classList.add("active");
+      // Load/render custom strategies list
+      if (typeof renderCustomStrategiesList === "function") {
+        renderCustomStrategiesList();
+      }
+      if (typeof checkCommunityAccess === "function") {
+        checkCommunityAccess();
+      }
     }
   }
 
@@ -592,13 +640,13 @@
     if (!number) {
       return;
     }
- 
+
     chrome.runtime.sendMessage({
       type: "manual-bet",
       number: String(number),
       neighborhoodSize: neighborhoodSize
     });
- 
+
     document.querySelectorAll(".zrr-recommendation, .zrr-recommendation-lt").forEach(recAlert => {
       recAlert.innerText = `Manual strategy: ${number} + ${neighborhoodSize} neighborhood`;
       recAlert.classList.add("alert-highlight");
@@ -655,7 +703,7 @@
 
       const targetProfit = budget * (profitPercent / 100);
       const targetExit = budget + targetProfit;
-      
+
       document.querySelectorAll(".zrr-math-exit-target").forEach(el => {
         el.innerText = targetExit.toFixed(2) + " RON";
       });
@@ -827,10 +875,10 @@
       recAlert.classList.remove("clickable");
       recAlert.classList.add("alert-highlight");
       betDiv.style.display = "flex";
-      
+
       const isLt = (recAlert.id === "zrr-recommendation-lt");
-      const subtitleText = isLt 
-        ? "Cover focus 4 jackpot numbers with +3 neighbors." 
+      const subtitleText = isLt
+        ? "Cover focus 4 jackpot numbers with +3 neighbors."
         : "Cover focus last 4 numbers with +3 neighbors. Play highlighted numbers first.";
       const overlapCount = zoneStrategy && zoneStrategy.overlapSet ? zoneStrategy.overlapSet.size : 0;
       const jackpotCount = Array.isArray(jackpotNumbers) ? new Set(jackpotNumbers.map((n) => String(n))).size : 0;
@@ -855,7 +903,7 @@
           const rowHtml = rowNumbers.map((n, rIdx) => {
             const color = getColorFromNumber(n);
             const isCenterJp = (rIdx === 3);
-            const isOverlap = zoneStrategy.overlapSet && zoneStrategy.overlapSet.has(String(n));
+            const isOverlap = zoneStrategy && zoneStrategy.overlapSet && zoneStrategy.overlapSet.has(String(n));
             const isOtherJp = !isCenterJp && jackpotNumbers && jackpotNumbers.includes(String(n));
             const isClickableJp = jackpotSet.has(String(n));
 
@@ -918,7 +966,7 @@
         if (extraPlays.length > 0) {
           const extraBadgesHtml = extraPlays.map(n => {
             const color = getColorFromNumber(n);
-            const isOverlap = zoneStrategy.overlapSet && zoneStrategy.overlapSet.has(String(n));
+            const isOverlap = zoneStrategy && zoneStrategy.overlapSet && zoneStrategy.overlapSet.has(String(n));
             let extraClass = isOverlap ? " strategy-badge-overlap" : "";
             return `<span class="number-badge strategy-badge ${color}${extraClass}">${n}</span>`;
           }).join("");
@@ -1024,14 +1072,14 @@
       }
 
       const color = getColorFromNumber(num);
-      
+
       const wrapper = document.createElement("div");
       wrapper.className = "jackpot-badge-wrapper";
       wrapper.style.display = "flex";
       wrapper.style.flexDirection = "column";
       wrapper.style.alignItems = "center";
       wrapper.style.gap = "2px";
-      wrapper.style.width = "28px";
+      wrapper.style.width = "42px";
 
       const badge = document.createElement("span");
       badge.className = `number-badge ${color} clickable`;
@@ -1055,7 +1103,7 @@
   function renderGoldenRingRail(container, overlapSet) {
     if (!container) return;
     container.innerHTML = "";
-    
+
     if (!overlapSet || overlapSet.size === 0) {
       const emptySpan = document.createElement("span");
       emptySpan.style.fontSize = "9px";
@@ -1064,7 +1112,7 @@
       container.appendChild(emptySpan);
       return;
     }
-    
+
     uniquePreserveOrder(Array.from(overlapSet).map((num) => String(num))).forEach(numStr => {
       if (!numbers.includes(numStr)) return;
 
@@ -1452,9 +1500,18 @@
       for (var i = 0; i < numbers.length; i++) {
         var angle = startAngle + i * arc;
         const numberColor = getColorFromNumber(numbers[i]);
-        ctx.fillStyle = numberColor === "red"
-          ? "#e0232a"
-          : (numberColor === "black" ? "#222222" : "#2b741b");
+        const isLtMode = (activeCanvasId === "canvas-lt" && !cachedIsWaitRoundLt && cachedPatternNumbersLt.length > 0);
+        const isActive = !isLtMode || cachedPatternNumbersLt.map(String).includes(String(numbers[i]));
+
+        if (isActive) {
+          ctx.fillStyle = numberColor === "red"
+            ? "#e0232a"
+            : (numberColor === "black" ? "#222222" : "#2b741b");
+        } else {
+          ctx.fillStyle = numberColor === "red"
+            ? "rgba(100, 15, 18, 0.45)"
+            : (numberColor === "black" ? "rgba(15, 15, 15, 0.45)" : "rgba(15, 45, 10, 0.45)");
+        }
 
         ctx.beginPath();
         ctx.arc(canvas.width / 2, canvas.height / 2, outsideRadius, angle, angle + arc, false);
@@ -1463,7 +1520,7 @@
         ctx.fill();
 
         ctx.save();
-        ctx.fillStyle = "white";
+        ctx.fillStyle = isActive ? "white" : "rgba(255, 255, 255, 0.22)";
         ctx.translate(canvas.width / 2 + Math.cos(angle + arc / 2) * textRadius,
                       canvas.height / 2 + Math.sin(angle + arc / 2) * textRadius);
         ctx.rotate(angle + arc / 2 + Math.PI / 2);
@@ -1485,13 +1542,17 @@
     var textRadius = geometry.textRadius;
     ctx.save();
     ctx.font = '700 9px Montserrat, sans-serif';
-    ctx.fillStyle = "#ffffff";
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 2;
 
     for (var i = 0; i < numbers.length; i++) {
       var angle = startAngle + i * arc;
       ctx.save();
+
+      const isLtMode = (activeCanvasId === "canvas-lt" && !cachedIsWaitRoundLt && cachedPatternNumbersLt.length > 0);
+      const isActive = !isLtMode || cachedPatternNumbersLt.map(String).includes(String(numbers[i]));
+      ctx.fillStyle = isActive ? "#ffffff" : "rgba(255, 255, 255, 0.22)";
+
       ctx.translate(canvas.width / 2 + Math.cos(angle + arc / 2) * textRadius,
                     canvas.height / 2 + Math.sin(angle + arc / 2) * textRadius);
       ctx.rotate(angle + arc / 2 + Math.PI / 2);
@@ -1539,9 +1600,9 @@
         let start_angle = startAngle + idx * arc;
         if (activeCanvasId === "canvas-lt") {
           // LT: draw a slim blue outer ring marker, matching Dealer ring thickness.
-          ctx.fillStyle = "rgba(115, 196, 255, 0.62)";
+          ctx.fillStyle = "rgba(51, 153, 255, 0.82)";
           ctx.strokeStyle = "rgba(178, 226, 255, 0.98)";
-          ctx.lineWidth = 0.9;
+          ctx.lineWidth = 1.8;
           insideRadius = lightningRingInnerRadius;
         } else {
           ctx.fillStyle = "rgba(51, 153, 255, 0.55)";
@@ -1901,9 +1962,9 @@
       if (idx !== -1) {
         let start_angle = startAngle + idx * arc;
         if (activeCanvasId === "canvas-lt") {
-          ctx.fillStyle = "rgba(84, 180, 53, 0.2)";
-          ctx.strokeStyle = "rgba(84, 180, 53, 0.35)";
-          ctx.lineWidth = 0.7;
+          ctx.fillStyle = "rgba(84, 180, 53, 0.62)";
+          ctx.strokeStyle = "rgba(84, 180, 53, 0.85)";
+          ctx.lineWidth = 1.6;
         } else {
           ctx.fillStyle = "rgba(84, 180, 53, 0.45)"; // green semitransparent
           ctx.strokeStyle = "#54b435";
@@ -1922,14 +1983,14 @@
   function getConsecutiveNeighbors(n) {
     const num = parseInt(n, 10);
     if (isNaN(num) || num === 0) return [];
-    
+
     let prev = num - 1;
     let next = num + 1;
-    
+
     // Wrap around 36 to 1, skipping 0
     if (prev < 1) prev = 36;
     if (next > 36) next = 1;
-    
+
     return [String(prev), String(next)];
   }
 
@@ -1938,12 +1999,12 @@
     const numB = parseInt(b, 10);
     if (isNaN(numA) || isNaN(numB)) return false;
     if (numA === 0 || numB === 0) return false;
-    
+
     const diff = Math.abs(numA - numB);
     if (diff === 1) return true;
     if (numA === 1 && numB === 36) return true;
     if (numA === 36 && numB === 1) return true;
-    
+
     return false;
   }
 
@@ -2029,7 +2090,7 @@
           const prev = String(recentNumbers[i + 1]);
           const neighbors = getConsecutiveNeighbors(prev);
           const spunAfterZero = new Set(recentNumbers.slice(0, i).map(String));
-          
+
           // Check if any neighbor has already hit after the zero
           const hasHit = neighbors.some(n => spunAfterZero.has(n));
           if (!hasHit) {
@@ -2105,6 +2166,52 @@
     return scored.slice(0, 4);
   }
 
+  function renderWheelHistoryLt(container, recentNumbers) {
+    if (!container) return;
+    container.innerHTML = "";
+    if (!recentNumbers || recentNumbers.length === 0) return;
+
+    // Show last 5 numbers, newest to oldest (left to right)
+    const last5 = recentNumbers.slice(0, 5);
+    last5.forEach((num) => {
+      const val = parseInt(num, 10);
+      if (isNaN(val)) return;
+
+      const badge = document.createElement("span");
+      badge.className = `wheel-history-badge ${getColorFromNumber(val)}`;
+      badge.innerText = String(val);
+      badge.title = `Spin: ${val}`;
+      container.appendChild(badge);
+    });
+  }
+
+  function askGeminiForPatternExplanation(patternKey, patternCode, patternDesc, isActive) {
+    const isLightningMode = (activeCanvasId === "canvas-lt");
+    const cardId = isLightningMode ? "zrr-gemini-card-lt" : "zrr-gemini-card";
+    const geminiCard = document.getElementById(cardId);
+
+    if (!geminiCard) {
+      console.warn("Gemini card not found:", cardId);
+      return;
+    }
+
+    if (!geminiEnabled) {
+      geminiEnabled = true;
+      document.querySelectorAll(".zrr-gemini-toggle-input").forEach(el => {
+        el.checked = true;
+      });
+      chrome.storage.local.set({ geminiEnabled: true }, () => {
+        updateGeminiUIState();
+        redrawActiveWheel();
+      });
+    }
+
+    const isActiveStr = isActive ? "currently ACTIVE" : "currently INACTIVE";
+    const promptText = `Explain the strategic relevance of the "${patternCode}" pattern (${patternDesc}) in roulette. Note: This pattern is ${isActiveStr} on the table based on the latest spin history. What numbers does it target, how should I play it, and what should my betting size/progression be?`;
+
+    handleChatSubmission(geminiCard, promptText);
+  }
+
   function renderLightningActivePatterns(container, recentNumbers) {
     if (!container) return;
     container.innerHTML = "";
@@ -2147,26 +2254,94 @@
       : "Preference Mapping inactive.";
 
     const chipMeta = [
-      { key: "ZERO", code: "ZERO", colorClass: "blue", active: isZeroActive, desc: zeroDesc },
-      { key: "REP", code: "REP", colorClass: "purple", active: isRepActive, desc: repDesc },
-      { key: "CNS", code: "CNS", colorClass: "gold-glow", active: isCnsActive, desc: cnsDesc },
-      { key: "PREF", code: "PREF", colorClass: "green-glow", active: isPrefActive, desc: prefDesc }
+      { key: "ZERO", code: "ZRO", colorClass: "blue", enabled: enabledPatternsLt.zero, active: isZeroActive, desc: zeroDesc },
+      { key: "REP", code: "RPT", colorClass: "purple", enabled: enabledPatternsLt.rep, active: isRepActive, desc: repDesc },
+      { key: "CNS", code: "CNS", colorClass: "gold-glow", enabled: enabledPatternsLt.cns, active: isCnsActive, desc: cnsDesc },
+      { key: "PREF", code: "CST", colorClass: "green-glow", enabled: enabledPatternsLt.pref, active: isPrefActive, desc: prefDesc }
     ];
 
-    chipMeta.forEach((chip) => {
+    // Spin History Tracking (500 spins sliding window)
+    const recentJoin = recentNumbers ? recentNumbers.join(",") : "";
+    if (recentJoin && recentJoin !== lastRecentNumbersJoinLt) {
+      lastRecentNumbersJoinLt = recentJoin;
+
+      const activeKeys = [];
+      if (isZeroActive) activeKeys.push("ZERO");
+      if (isRepActive) activeKeys.push("REP");
+      if (isCnsActive) activeKeys.push("CNS");
+      if (isPrefActive) activeKeys.push("PREF");
+
+      patternTriggerHistoryLt.push({
+        join: recentJoin,
+        active: activeKeys
+      });
+
+      if (patternTriggerHistoryLt.length > 500) {
+        patternTriggerHistoryLt.shift();
+      }
+
+      chrome.storage.local.set({
+        patternTriggerHistoryLt: patternTriggerHistoryLt,
+        lastRecentNumbersJoinLt: lastRecentNumbersJoinLt
+      });
+    }
+
+    // Helper to calculate visibility count in the last 500 spins
+    function getPatternVisibility(key) {
+      let count = 0;
+      patternTriggerHistoryLt.forEach(entry => {
+        if (entry.active && entry.active.includes(key)) {
+          count++;
+        }
+      });
+      return count;
+    }
+
+    // Filter: Only show active patterns
+    let activeChips = chipMeta.filter(chip => chip.active);
+
+    // Sort active chips by user priority order first
+    activeChips.sort((a, b) => {
+      let idxA = patternOrderLt.indexOf(a.key);
+      let idxB = patternOrderLt.indexOf(b.key);
+      if (idxA === -1) idxA = 999;
+      if (idxB === -1) idxB = 999;
+      return idxA - idxB;
+    });
+
+    // If more than 4, show only the 4 patterns with highest trigger visibility in the last 500 numbers
+    if (activeChips.length > 4) {
+      activeChips.forEach(chip => {
+        chip.visibility = getPatternVisibility(chip.key);
+      });
+      // Sort by visibility descending
+      activeChips.sort((a, b) => b.visibility - a.visibility);
+      // Slice to top 4
+      activeChips = activeChips.slice(0, 4);
+      // Sort back by user priority order
+      activeChips.sort((a, b) => {
+        let idxA = patternOrderLt.indexOf(a.key);
+        let idxB = patternOrderLt.indexOf(b.key);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+      });
+    }
+
+    activeChips.forEach((chip) => {
       const wrapper = document.createElement("div");
       wrapper.className = "pattern-chip-wrapper";
       wrapper.style.display = "flex";
       wrapper.style.flexDirection = "column";
       wrapper.style.alignItems = "center";
       wrapper.style.gap = "2px";
-      wrapper.style.width = "28px";
+      wrapper.style.width = "42px";
 
       const badge = document.createElement("span");
       const prevState = !!lastPatternChipStatesLt[chip.key];
       const changed = prevState !== chip.active;
 
-      badge.className = `number-badge ${chip.active ? chip.colorClass : "wait-badge pattern-chip-inactive"}${changed ? " pattern-chip-rotate" : ""}`;
+      badge.className = `number-badge ${chip.colorClass} pattern-chip-active-pulse${changed ? " pattern-chip-rotate" : ""}`;
       badge.style.fontSize = "8px";
       badge.style.fontWeight = "800";
       badge.style.letterSpacing = "0.05em";
@@ -2180,15 +2355,27 @@
       badge.style.fontSize = "10px";
       badge.style.borderRadius = "999px";
       badge.style.margin = "0";
+      badge.style.cursor = "pointer";
       badge.innerText = chip.code;
-      badge.title = `${chip.code}: ${chip.desc}`;
+      badge.title = `${chip.code}: ${chip.desc}\nClick to ask AI for explanation.`;
+
+      badge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        askGeminiForPatternExplanation(chip.key, chip.code, chip.desc, chip.active);
+      });
 
       const statusEl = document.createElement("span");
       statusEl.className = "pattern-chip-state";
       statusEl.style.fontSize = "9px";
       statusEl.style.fontWeight = "700";
-      statusEl.style.color = chip.active ? "#54b435" : "var(--muted)";
-      statusEl.innerText = chip.active ? "100%" : "0%";
+      statusEl.style.color = "#54b435";
+
+      const priorityIndex = patternOrderLt.indexOf(chip.key);
+      statusEl.innerText = priorityIndex !== -1 ? `#${priorityIndex + 1}` : "#5";
+
+      if (cachedIsWaitRoundLt) {
+        statusEl.style.display = "none";
+      }
 
       wrapper.appendChild(badge);
       wrapper.appendChild(statusEl);
@@ -2263,10 +2450,57 @@
       combinedDuplicatesLt = new Set(msg.lightning.goldenRingNumbers || []);
       isWaitRoundLt = !!msg.lightning.isWaitRound;
     }
+
+    const localLightningSnapshot = getLightningPatternSnapshot(recentNumbers, currentWinner);
+    const localLightningTargets = uniquePreserveOrder(
+      Object.values(localLightningSnapshot.patternTargets || {})
+        .flat()
+        .map((n) => String(n))
+        .filter(Boolean)
+    );
+
+    if (localLightningTargets.length > 0) {
+      localLightningTargets.forEach((target) => {
+        if (!combinedPatternNumbersLt.map(String).includes(target)) {
+          combinedPatternNumbersLt.push(target);
+        }
+      });
+
+      if (finalHighStakeNumbersLt.length === 0) {
+        finalHighStakeNumbersLt = localLightningTargets.slice(0, 4).map((number, index) => ({
+          number,
+          score: Math.max(60, 100 - (index * 10)),
+          source: "LOCAL_PATTERN"
+        }));
+      }
+
+      if (jackpotNumbersLt.length === 0) {
+        jackpotNumbersLt = localLightningTargets.slice(0, 4);
+      }
+
+      isWaitRoundLt = false;
+    }
+
+    // Merge client-side custom strategies triggers
+    if (typeof evalCustomStrategies === "function") {
+      const customEval = evalCustomStrategies(recentNumbers);
+      if (customEval.mergedTargets.length > 0) {
+        customEval.mergedTargets.forEach((t) => {
+          if (!combinedPatternNumbersLt.includes(t)) {
+            combinedPatternNumbersLt.push(t);
+          }
+        });
+        isWaitRoundLt = false;
+      }
+    }
     const isWaitRound = !recentNumbers || recentNumbers.length < 4 || !effectiveBetFavorites || effectiveBetFavorites.length === 0 || !zoneStrategy.overlapSet || zoneStrategy.overlapSet.size === 0 || maxBaseScore < 50;
     const standardGoldNumbers = zoneStrategy.overlapSet ? Array.from(zoneStrategy.overlapSet).map(String) : [];
     const lightningGoldNumbers = combinedDuplicatesLt ? Array.from(combinedDuplicatesLt).map(String) : [];
-    const lightningPatternSnapshot = getLightningPatternSnapshot(recentNumbers, currentWinner);
+    const zoneStrategyLt = {
+      zoneNumbers: combinedPatternNumbersLt,
+      overlapSet: combinedDuplicatesLt || new Set()
+    };
+    const lightningPatternSnapshot = localLightningSnapshot;
 
     if ((!recentNumbers || recentNumbers.length < 4) && currentDashboardState.winner && (Date.now() - lastStableDashboardAt < 12000)) {
       return;
@@ -2379,6 +2613,10 @@
     });
     document.querySelectorAll(".zrr-last-four-numbers-lt").forEach(container => {
       renderLightningActivePatterns(container, recentNumbers);
+    });
+
+    document.querySelectorAll("#zrr-wheel-history-lt").forEach(container => {
+      renderWheelHistoryLt(container, recentNumbers);
     });
 
     document.querySelectorAll(".zrr-jackpot-four-numbers").forEach(container => {
@@ -2598,6 +2836,36 @@
       isWaitRound: !!msg.isWaitRound
     });
 
+    // Automatically log the new number to the AI assistant in real-time
+    document.querySelectorAll(".zrr-gemini-chat-history").forEach(history => {
+      const standbyMsg = history.querySelector(".system-msg");
+      if (standbyMsg) standbyMsg.remove();
+
+      const logBubble = document.createElement("div");
+      logBubble.className = "zrr-gemini-system-log";
+      logBubble.style.cssText = "font-size: 10px; color: var(--text-secondary); opacity: 0.85; font-style: italic; margin-bottom: 4px; padding: 2px 4px; border-left: 2px solid var(--accent);";
+
+      const winner = msg.winner !== undefined ? msg.winner : (msg.recentNumbers && msg.recentNumbers[0]);
+      if (winner !== undefined && winner !== null) {
+        const activeStrats = [];
+        if (msg.activePatterns && Array.isArray(msg.activePatterns)) {
+          msg.activePatterns.forEach(p => activeStrats.push(p));
+        } else {
+          if (typeof lastPatternChipStatesLt === "object") {
+            Object.keys(lastPatternChipStatesLt).forEach(key => {
+              if (lastPatternChipStatesLt[key]) {
+                activeStrats.push(key === "PREF" ? "CST" : (key === "REP" ? "RPT" : (key === "ZERO" ? "ZRO" : key)));
+              }
+            });
+          }
+        }
+        const activeStratsStr = activeStrats.length > 0 ? activeStrats.join(", ") : "None";
+        logBubble.innerText = `Registered Spin: ${winner} | Active Patterns: ${activeStratsStr}`;
+        history.appendChild(logBubble);
+        history.scrollTop = history.scrollHeight;
+      }
+    });
+
     if (resultType === "wait") {
       waitSessions++;
     } else {
@@ -2615,10 +2883,10 @@
     // Repaint hands list
     const handsContainer = document.getElementById("zrr-play-information");
     handsContainer.innerHTML = "";
-    
+
     // Show last 8 hands (newest first)
     const lastHands = playData.slice(-8).reverse();
-    
+
     if (lastHands.length === 0) {
       handsContainer.innerHTML = '<div class="msg">No rounds recorded yet in this session.</div>';
     } else {
@@ -2638,7 +2906,7 @@
         const betCount = hand.betOn ? hand.betOn.length : 0;
         const jpText = hand.jackpotNumbers && hand.jackpotNumbers.length > 0 ? hand.jackpotNumbers.join(" ") : "-";
         const goldText = hand.goldenNumbers && hand.goldenNumbers.length > 0 ? hand.goldenNumbers.join(" ") : "-";
-        
+
         item.innerHTML = `
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
             <div>
@@ -2957,11 +3225,19 @@
       }
       startLicenseCountdown(res.expiresAt);
 
+      if (res.autoIssued) {
+        const deliveryText = res.emailSent
+          ? "The activation code was emailed to this address."
+          : "The licence was generated, but email delivery failed. Please contact support.";
+        setLicenseStatus(`Promo licence generated automatically. ${deliveryText}`, !res.emailSent);
+        return;
+      }
+
       const requestLabel = res.requestId ? `Request #${res.requestId}` : "Request";
       const duplicateNote = res.duplicate
-        ? `${requestLabel} is already pending.`
+        ? (res.promoLimitReached ? `${requestLabel} already used today's promo licence.` : `${requestLabel} is already pending.`)
         : `${requestLabel} was sent to the administrator.`;
-      setLicenseStatus(`${duplicateNote} The licence code will be emailed to this address after it is issued.`, false);
+      setLicenseStatus(`${duplicateNote} ${res.promoLimitReached ? "One promo licence is available per account every 24 hours." : "The licence code will be emailed to this address after it is issued."}`, false);
     } catch (error) {
       await chrome.storage.local.set({ lastRequestTime: Date.now() });
       setLicenseStatus("License request failed. Try again.", true);
@@ -3017,7 +3293,7 @@
       startLicenseCountdown(licenseState.expiresAt);
       setLicenseStatus(`License active until ${formatExpiry(licenseState.expiresAt)}.`, false);
       await checkAuth();
-      switchTab("dashboard");
+      switchTab("lightning");
     } catch (error) {
       setLicenseStatus("Activation failed. Please retry.", true);
     } finally {
@@ -3147,7 +3423,7 @@
             "[class*='dealer-'] span",
             "[class*='croupier-'] span"
           ];
-          
+
           for (let i = 0; i < selectors.length; i++) {
             const nodes = querySelectorAllDeep(selectors[i]);
             for (let j = 0; j < nodes.length; j++) {
@@ -4242,6 +4518,26 @@
     const limit = Math.max(0, history.length - 4);
     const allEnabled = { zero: true, rep: true, cns: true, pref: true };
 
+    function withPatternScanSettings(fn) {
+      const previousEnabledPatterns = Object.assign({}, enabledPatternsLt);
+      const previousCnsHitWinner = lastCnsHitWinnerLt;
+      enabledPatternsLt = Object.assign({}, allEnabled);
+      lastCnsHitWinnerLt = null;
+      try {
+        return fn();
+      } finally {
+        enabledPatternsLt = previousEnabledPatterns;
+        lastCnsHitWinnerLt = previousCnsHitWinner;
+      }
+    }
+
+    function callStrategyCore(methodName, fallback) {
+      if (strategyCore && typeof strategyCore[methodName] === "function") {
+        return strategyCore[methodName](fallback.context, { enabledPatterns: allEnabled });
+      }
+      return withPatternScanSettings(fallback.run);
+    }
+
     function addPattern(row, code, targets, extra) {
       const targetList = uniquePreserveOrder(targets || []);
       const active = targetList.length > 0;
@@ -4293,19 +4589,22 @@
         patterns: {}
       };
 
-      const zeroTargets = strategyCore
-        ? strategyCore.getZeroRuleJackpotNumbers(context, { enabledPatterns: allEnabled })
-        : [];
+      const zeroTargets = callStrategyCore("getZeroRuleJackpotNumbers", {
+        context,
+        run: () => getZeroRuleJackpotNumbers(context)
+      });
       addPattern(row, "ZERO", zeroTargets);
 
-      const repeatTargets = strategyCore
-        ? strategyCore.getLightningPatternNumbers(context, { enabledPatterns: allEnabled })
-        : [];
+      const repeatTargets = callStrategyCore("getLightningPatternNumbers", {
+        context,
+        run: () => getLightningPatternNumbers(context)
+      });
       addPattern(row, "REP", repeatTargets);
 
-      const cnsState = strategyCore
-        ? strategyCore.getLightningConsecutiveNumbers(context, { enabledPatterns: allEnabled })
-        : { triggerSet: new Set(), neighborSet: new Set() };
+      const cnsState = callStrategyCore("getLightningConsecutiveNumbers", {
+        context,
+        run: () => getLightningConsecutiveNumbers(context)
+      }) || { triggerSet: new Set(), neighborSet: new Set() };
       const cnsTargets = cnsState && cnsState.triggerSet && cnsState.triggerSet.size > 0
         ? getConsecutiveNeighbors(context[0])
         : [];
@@ -4560,7 +4859,7 @@
     if (DEV_BYPASS_AUTH) {
       await checkAuth();
       chrome.runtime.sendMessage({ type: "update-dashboard" });
-      switchTab("dashboard");
+      switchTab("lightning");
       return;
     }
 
@@ -4583,7 +4882,7 @@
 
       if (res.success) {
         const accountEmail = normalizeEmail(res.email || "");
-        await chrome.storage.local.set({ 
+        await chrome.storage.local.set({
           authenticated: true,
           email: accountEmail,
           membership: res.membership || 'member'
@@ -4592,7 +4891,7 @@
           licenseEmailInput.value = accountEmail;
         }
         const accessGranted = await checkAuth();
-        switchTab(accessGranted ? "dashboard" : "account");
+        switchTab(accessGranted ? "lightning" : "account");
       } else {
         errorBox.innerText = res.msg || "Login failed. Invalid username, email, or password.";
       }
@@ -4624,7 +4923,7 @@
     if (recordingActive) {
       stopSessionRecording();
     }
-    
+
     // Clear elements
     clearPlayInformation();
     updateSessionStatsUi();
@@ -4646,14 +4945,14 @@
   async function checkAuth() {
     const state = await chrome.storage.local.get(["authenticated", "email", "membership"]);
     const accountEmail = normalizeEmail(state.email || "");
-    const authOk = DEV_BYPASS_AUTH ? true : !!state.authenticated;
+    const authOk = (DEV_BYPASS_AUTH || IS_PREVIEW_MODE) ? true : !!state.authenticated;
     const licenseState = await refreshLicenseUiFromStorage(accountEmail || (licenseEmailInput ? licenseEmailInput.value : ""));
     const hasValidLicense = !!licenseState.valid;
-    const accessGranted = DEV_BYPASS_AUTH ? true : (authOk && hasValidLicense);
+    const accessGranted = (DEV_BYPASS_AUTH || IS_PREVIEW_MODE) ? true : (authOk && hasValidLicense);
 
-    if (DEV_BYPASS_AUTH) {
+    if (DEV_BYPASS_AUTH || IS_PREVIEW_MODE) {
       memberEmail.innerText = accountEmail || "dev@local";
-      membershipType.innerText = hasValidLicense ? "Development + 24h License" : "Development Mode";
+      membershipType.innerText = IS_PREVIEW_MODE ? "Preview + 24h License" : (hasValidLicense ? "Development + 24h License" : "Development Mode");
       loginContainer.style.display = 'none';
       memberContainer.style.display = 'flex';
       if (licenseContainer) licenseContainer.style.display = 'flex';
@@ -4803,6 +5102,9 @@
   }
   sessionTab.addEventListener("click", () => switchTab("session"));
   accountTab.addEventListener("click", () => switchTab("account"));
+  if (strategiesTab) {
+    strategiesTab.addEventListener("click", () => switchTab("strategies"));
+  }
 
   const mathBudget = document.getElementById("zrr-math-budget");
   const mathProfitPercent = document.getElementById("zrr-math-profit-percent");
@@ -4856,17 +5158,33 @@
   const toggleCns = document.getElementById("zrr-toggle-cns");
   const togglePref = document.getElementById("zrr-toggle-pref");
 
-  function syncToggleStates() {
-    enabledPatternsLt.zero = toggleZero ? toggleZero.checked : true;
-    enabledPatternsLt.rep = toggleRep ? toggleRep.checked : true;
-    enabledPatternsLt.cns = toggleCns ? toggleCns.checked : true;
-    enabledPatternsLt.pref = togglePref ? togglePref.checked : true;
-
-    // Toggle custom preference mapping settings card visibility
-    const customPrefCard = document.getElementById("zrr-custom-pref-card");
-    if (customPrefCard) {
-      customPrefCard.style.display = enabledPatternsLt.pref ? "flex" : "none";
+  function getVisiblePatternToggleChecked(id, fallback) {
+    const toggles = Array.from(document.querySelectorAll(`[id="${id}"]`));
+    if (toggles.length === 0) {
+      return fallback;
     }
+
+    const visibleToggle = toggles.find((toggle) => {
+      const rect = toggle.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+
+    return (visibleToggle || toggles[toggles.length - 1]).checked;
+  }
+
+  function refreshLightningPatternRail() {
+    document.querySelectorAll(".zrr-last-four-numbers-lt").forEach(container => {
+      renderLightningActivePatterns(container, cachedRecentNumbers || []);
+    });
+  }
+
+  function syncToggleStates() {
+    enabledPatternsLt.zero = getVisiblePatternToggleChecked("zrr-toggle-zero", true);
+    enabledPatternsLt.rep = getVisiblePatternToggleChecked("zrr-toggle-rep", true);
+    enabledPatternsLt.cns = getVisiblePatternToggleChecked("zrr-toggle-cns", true);
+    enabledPatternsLt.pref = getVisiblePatternToggleChecked("zrr-toggle-pref", true);
+
+
 
     chrome.storage.local.set({ enabledPatternsLt });
   }
@@ -4966,7 +5284,7 @@
       circle.className = "pref-grid-item number-badge " + getColorFromNumber(numStr);
       circle.textContent = numStr;
       circle.dataset.number = numStr;
-      
+
       if (numStr === selectedTrigger) {
         circle.classList.add("selected");
       }
@@ -5037,23 +5355,36 @@
     });
   }
 
-  function handleToggleChange() {
-    syncToggleStates();
-    if (cachedRecentNumbers && cachedRecentNumbers.length > 0) {
-      updateDashboard({
-        recentNumbers: cachedRecentNumbers,
-        favoriteNumbers: cachedStrategy.favoriteNumbers,
-        betFavorites: cachedStrategy.betFavorites,
-        highStakeNumbers: cachedStrategy.highStakeNumbers,
-        dealer: document.getElementById("zrr-dealer-name") ? document.getElementById("zrr-dealer-name").innerText : "live"
+  function handleToggleChange(event) {
+    const changedToggle = event && event.target;
+    const toggleMap = {
+      "zrr-toggle-zero": "zero",
+      "zrr-toggle-rep": "rep",
+      "zrr-toggle-cns": "cns",
+      "zrr-toggle-pref": "pref"
+    };
+    const changedKey = changedToggle ? toggleMap[changedToggle.id] : null;
+
+    if (changedKey) {
+      enabledPatternsLt[changedKey] = !!changedToggle.checked;
+      document.querySelectorAll(`[id="${changedToggle.id}"]`).forEach((toggle) => {
+        toggle.checked = !!changedToggle.checked;
       });
+      chrome.storage.local.set({ enabledPatternsLt });
+    } else {
+      syncToggleStates();
     }
+
+    refreshLightningPatternRail();
+    triggerDashboardRecalculation();
+    chrome.runtime.sendMessage({ type: "update-pattern-settings", enabledPatternsLt: enabledPatternsLt });
   }
 
-  if (toggleZero) toggleZero.addEventListener("change", handleToggleChange);
-  if (toggleRep) toggleRep.addEventListener("change", handleToggleChange);
-  if (toggleCns) toggleCns.addEventListener("change", handleToggleChange);
-  if (togglePref) togglePref.addEventListener("change", handleToggleChange);
+  document.addEventListener("change", (event) => {
+    if (event.target && ["zrr-toggle-zero", "zrr-toggle-rep", "zrr-toggle-cns", "zrr-toggle-pref"].includes(event.target.id)) {
+      handleToggleChange(event);
+    }
+  });
 
   // Import/Export Custom Preference Mapping Configuration
   const exportBtn = document.getElementById("zrr-pref-export-btn");
@@ -5140,10 +5471,7 @@
             if (toggleCns) toggleCns.checked = !!enabledPatternsLt.cns;
             if (togglePref) togglePref.checked = !!enabledPatternsLt.pref;
 
-            const customPrefCard = document.getElementById("zrr-custom-pref-card");
-            if (customPrefCard) {
-              customPrefCard.style.display = enabledPatternsLt.pref ? "flex" : "none";
-            }
+
 
             // Refresh input chips
             populatePrefDropdownAndInputs();
@@ -5191,10 +5519,16 @@
     });
   }
   const buyLicenseBtn = document.getElementById("zrr-license-buy-btn");
+  const buy30LicenseBtn = document.getElementById("zrr-license-buy-30-btn");
   const requestLicenseBtn = document.getElementById("zrr-license-request-btn");
   const activateLicenseBtn = document.getElementById("zrr-license-activate-btn");
   if (buyLicenseBtn) {
     buyLicenseBtn.addEventListener("click", openDailyLicenseCheckout);
+  }
+  if (buy30LicenseBtn) {
+    buy30LicenseBtn.addEventListener("click", () => {
+      window.open("https://zenroulette.com/zenroulette-assistant-monthly/", "_blank");
+    });
   }
   if (requestLicenseBtn) {
     requestLicenseBtn.addEventListener("click", requestLicenseCode);
@@ -5428,8 +5762,8 @@ Style Guidelines:
       targetProfitPercent: targetProfit + "%"
     };
 
-    const sessionStatusContext = sessionActive 
-      ? "The user has started an active ZenRoulette logging session." 
+    const sessionStatusContext = sessionActive
+      ? "The user has started an active ZenRoulette logging session."
       : "CRITICAL: The user has NOT started a ZenRoulette logging session yet. You MUST explicitly mention to the user in your response that they need to start a session to track stats and predictions properly (tell them to click the 'Start Session' button on the Session tab).";
 
     const isLightning = card.id.includes("-lt");
@@ -5440,7 +5774,7 @@ Style Guidelines:
 
       Live telemetry status context:
       ${JSON.stringify(payload, null, 2)}
-      
+
       Session Status:
       ${sessionStatusContext}
 
@@ -5451,12 +5785,12 @@ Style Guidelines:
       agentBubble.remove();
       const replyBubble = document.createElement("div");
       replyBubble.style.cssText = "align-self: flex-start; background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 6px; padding: 6px 8px; max-width: 85%; word-break: break-word; color: var(--text-main); margin-bottom: 4px; border-top-left-radius: 1px; line-height: 1.45;";
-      
+
       // Typewriter effect
       replyBubble.innerText = "";
       history.appendChild(replyBubble);
       history.scrollTop = history.scrollHeight;
-      
+
       let i = 0;
       const interval = setInterval(() => {
         if (i < reply.length) {
@@ -5661,14 +5995,17 @@ Style Guidelines:
     }
 
     chrome.storage.local.get([
-      "enabledPatternsLt", 
-      "collapseStates", 
-      "customPrefMappingLt", 
-      "geminiApiKey", 
-      "geminiEnabled", 
+      "enabledPatternsLt",
+      "collapseStates",
+      "customPrefMappingLt",
+      "geminiApiKey",
+      "geminiEnabled",
       "geminiConnectedGoogle",
       "dashboardLayoutOrder",
-      "lightningLayoutOrder"
+      "lightningLayoutOrder",
+      "patternOrderLt",
+      "patternTriggerHistoryLt",
+      "lastRecentNumbersJoinLt"
     ], (res) => {
       const order = res.dashboardLayoutOrder;
       const allowedIds = ["zrr-wheel-card", "zrr-strategy-card", "zrr-exit-card", "zrr-gemini-card"];
@@ -5692,7 +6029,7 @@ Style Guidelines:
             addedIds.add(item.id);
           }
         });
-        
+
         // Append any missing standard cards
         allowedIds.forEach(id => {
           if (!addedIds.has(id)) {
@@ -5736,7 +6073,7 @@ Style Guidelines:
               addedIdsLt.add(item.id);
             }
           });
-          
+
           // Append any missing Lightning cards
           allowedIdsLt.forEach(id => {
             if (!addedIdsLt.has(id)) {
@@ -5767,10 +6104,7 @@ Style Guidelines:
       if (toggleCns) toggleCns.checked = !!enabledPatternsLt.cns;
       if (togglePref) togglePref.checked = !!enabledPatternsLt.pref;
 
-      const customPrefCard = document.getElementById("zrr-custom-pref-card");
-      if (customPrefCard) {
-        customPrefCard.style.display = enabledPatternsLt.pref ? "flex" : "none";
-      }
+
 
       if (res && res.collapseStates && (!orderLt || orderLt.length === 0)) {
         const states = res.collapseStates;
@@ -5788,6 +6122,44 @@ Style Guidelines:
       }
 
       populatePrefDropdownAndInputs();
+
+      if (res.patternOrderLt && Array.isArray(res.patternOrderLt)) {
+        patternOrderLt = res.patternOrderLt;
+      }
+      if (res.patternTriggerHistoryLt && Array.isArray(res.patternTriggerHistoryLt)) {
+        patternTriggerHistoryLt = res.patternTriggerHistoryLt;
+      }
+      if (res.lastRecentNumbersJoinLt) {
+        lastRecentNumbersJoinLt = res.lastRecentNumbersJoinLt;
+      }
+
+      // Reorder patterns based on patternOrderLt
+      const patternOrder = patternOrderLt;
+      if (patternOrder && Array.isArray(patternOrder) && patternOrder.length > 0) {
+        const patternContainer = document.getElementById("zrr-patterns-drag-container");
+        if (patternContainer) {
+          const itemMap = {};
+          const items = Array.from(patternContainer.querySelectorAll(".pattern-drag-item"));
+          items.forEach(item => {
+            itemMap[item.dataset.pattern] = item;
+          });
+          patternOrder.forEach(patternName => {
+            const el = itemMap[patternName];
+            if (el) {
+              patternContainer.appendChild(el);
+            }
+          });
+          // Append any missing ones
+          items.forEach(item => {
+            if (!patternOrder.includes(item.dataset.pattern)) {
+              patternContainer.appendChild(item);
+            }
+          });
+        }
+      }
+
+      bindPatternActions();
+      initPatternDragAndDrop();
 
       if (res) {
         geminiApiKey = res.geminiApiKey || "";
@@ -5812,7 +6184,7 @@ Style Guidelines:
   function bindModuleEvents(card) {
     const header = card.querySelector(".card-header");
     const content = card.querySelector(".card-content");
-    
+
     if (header && content && !card.dataset.eventsBound) {
       header.addEventListener("click", (e) => {
         if (e.target.classList.contains("card-control-btn") || e.target.closest(".switch") || e.target.closest("input, select, button, a")) {
@@ -6082,7 +6454,7 @@ Style Guidelines:
   function saveLightningCardOrder() {
     const container = document.getElementById("lightningUnlocked");
     if (!container) return;
-    
+
     const cards = container.querySelectorAll(".draggable-card");
     const orderData = [];
     const savedIds = new Set();
@@ -6095,14 +6467,14 @@ Style Guidelines:
         templateId: card.id.split("-clone-")[0]
       });
     });
-    
+
     chrome.storage.local.set({ lightningLayoutOrder: orderData });
   }
 
   function saveCardOrder() {
     const container = document.getElementById("dashboardCardsContainer");
     if (!container) return;
-    
+
     const cards = container.querySelectorAll(".draggable-card");
     const orderData = [];
     const savedIds = new Set();
@@ -6115,7 +6487,7 @@ Style Guidelines:
         templateId: card.id.split("-clone-")[0]
       });
     });
-    
+
     chrome.storage.local.set({ dashboardLayoutOrder: orderData });
   }
 
@@ -6168,18 +6540,18 @@ Style Guidelines:
           card.addEventListener("drop", (e) => {
             e.preventDefault();
             card.classList.remove("drag-over");
-            
+
             if (draggingElement && card !== draggingElement && draggingElement.parentNode === container) {
               const allCards = Array.from(container.querySelectorAll(".draggable-card"));
               const draggingIdx = allCards.indexOf(draggingElement);
               const targetIdx = allCards.indexOf(card);
-              
+
               if (draggingIdx < targetIdx) {
                 container.insertBefore(draggingElement, card.nextSibling);
               } else {
                 container.insertBefore(draggingElement, card);
               }
-              
+
               if (containerId === "lightningUnlocked") {
                 saveLightningCardOrder();
               } else {
@@ -6193,12 +6565,1250 @@ Style Guidelines:
     });
   }
 
+  // --- TradingView of Roulette State & Logic ---
+
+  var customStrategies = [];
+  var followedCreators = [];
+  var currentBuilderStrategy = null;
+  var currentActiveTriggerNum = null;
+
+  // Load custom strategies and followed creators on panel load
+  function loadCustomStrategies() {
+    chrome.storage.local.get(["zra_custom_strategies", "zra_followed_creators"], (res) => {
+      customStrategies = res.zra_custom_strategies || getInitialSampleStrategies();
+      followedCreators = res.zra_followed_creators || [];
+      if (strategiesContent && strategiesContent.classList.contains("active")) {
+        renderCustomStrategiesList();
+      }
+    });
+  }
+
+  function saveCustomStrategies() {
+    chrome.storage.local.set({ zra_custom_strategies: customStrategies }, () => {
+      triggerDashboardRecalculation();
+    });
+  }
+
+  function saveFollowedCreators() {
+    chrome.storage.local.set({ zra_followed_creators: followedCreators });
+  }
+
+  function getInitialSampleStrategies() {
+    return [
+      {
+        id: "strat_default_rep",
+        name: "Zen Repeat Trigger",
+        description: "Plays the repeat numbers when a repeat occurs in the last 10 spins.",
+        type: "rep",
+        lookback: 10,
+        targets: ["0", "2", "4", "15", "19", "21", "25", "32"],
+        enabled: false,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      },
+      {
+        id: "strat_default_zero",
+        name: "Zero Guard",
+        description: "Zero rule neighbor protector strategy.",
+        type: "zero",
+        lookback: 8,
+        targets: ["26", "32", "15", "35", "3", "26", "0"],
+        enabled: false,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      },
+      {
+        id: "strat_default_cns",
+        name: "Zen Consecutive Trigger",
+        description: "Plays consecutive neighbors when consecutive numbers are spun.",
+        type: "cns",
+        lookback: 8,
+        targets: ["0", "2", "15", "26", "32", "35"],
+        enabled: false,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      },
+      {
+        id: "strat_default_pref",
+        name: "Zen Custom",
+        description: "Plays custom targets based on last spin mapping.",
+        type: "pref",
+        lookback: 8,
+        targets: [],
+        mapping: {
+          "0": ["3", "12", "15", "26", "32", "35"],
+          "1": ["1", "20", "14", "31", "9"],
+          "2": ["2", "21", "25", "17", "34"]
+        },
+        enabled: false,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      }
+    ];
+  }
+
+  function triggerDashboardRecalculation() {
+    if (cachedRecentNumbers && cachedRecentNumbers.length > 0) {
+      updateDashboard({
+        recentNumbers: cachedRecentNumbers,
+        favoriteNumbers: cachedStrategy.favoriteNumbers,
+        betFavorites: cachedStrategy.betFavorites,
+        highStakeNumbers: cachedStrategy.highStakeNumbers,
+        dealer: document.getElementById("zrr-dealer-name") ? document.getElementById("zrr-dealer-name").innerText : "live"
+      });
+    }
+  }
+
+  function evalCustomStrategies(recentNumbers) {
+    const activeStrats = [];
+    let mergedTargets = [];
+    if (!recentNumbers || recentNumbers.length < 2) {
+      return { activeStrats, mergedTargets };
+    }
+    customStrategies.forEach((strat) => {
+      if (!strat.enabled) return;
+      let triggered = false;
+      let targets = [];
+      if (strat.type === "pref") {
+        const lastNum = String(recentNumbers[0]);
+        if (strat.mapping && strat.mapping[lastNum]) {
+          targets = strat.mapping[lastNum];
+          triggered = targets.length > 0;
+        }
+      } else if (strat.type === "cns") {
+        const consec = getLightningConsecutiveNumbers(recentNumbers);
+        triggered = consec && consec.triggerSet && consec.triggerSet.size > 0;
+        targets = triggered ? strat.targets : [];
+      } else if (strat.type === "rep") {
+        const windowSize = strat.lookback || 10;
+        const window = recentNumbers.slice(0, windowSize + 2).map(String);
+        for (let i = 0; i < Math.min(window.length - 2, windowSize); i++) {
+          if (window[i] === window[i+1] || window[i] === window[i+2]) {
+            triggered = true;
+            break;
+          }
+        }
+        targets = triggered ? strat.targets : [];
+      } else if (strat.type === "zero") {
+        const windowSize = strat.lookback || 8;
+        const window = recentNumbers.slice(0, windowSize).map(String);
+        const zeroIndex = window.indexOf("0");
+        if (zeroIndex !== -1 && zeroIndex + 1 < recentNumbers.length) {
+          const prev = String(recentNumbers[zeroIndex + 1]);
+          const neighbors = getConsecutiveNeighbors(prev);
+          const spunAfterZero = new Set(recentNumbers.slice(0, zeroIndex).map(String));
+          const hasHit = neighbors.some((n) => spunAfterZero.has(n));
+          if (!hasHit) {
+            triggered = true;
+            targets = strat.targets;
+          }
+        }
+      }
+      if (triggered && targets.length > 0) {
+        activeStrats.push(strat);
+        mergedTargets = mergedTargets.concat(targets);
+      }
+    });
+    return {
+      activeStrats,
+      mergedTargets: Array.from(new Set(mergedTargets)).map(String)
+    };
+  }
+
+  // --- Dynamic Grid Rendering Helper ---
+  function renderInteractiveGrid(container, selectedSet, onToggle, activeTrigger) {
+    if (!container) return;
+    container.innerHTML = "";
+
+    // Add 0 first (spans full width in styling)
+    const btnZero = document.createElement("div");
+    btnZero.className = `tv-grid-btn green${selectedSet.has("0") ? " selected" : ""}${activeTrigger === "0" ? " active-trigger" : ""}`;
+    btnZero.innerText = "0";
+    btnZero.addEventListener("click", () => onToggle("0"));
+    container.appendChild(btnZero);
+
+    // Add 1 to 36
+    for (let i = 1; i <= 36; i++) {
+      const numStr = String(i);
+      const btn = document.createElement("div");
+      btn.className = `tv-grid-btn ${getRouletteColorClass(numStr)}${selectedSet.has(numStr) ? " selected" : ""}${activeTrigger === numStr ? " active-trigger" : ""}`;
+      btn.innerText = numStr;
+      btn.addEventListener("click", () => onToggle(numStr));
+      container.appendChild(btn);
+    }
+  }
+
+  // --- Subtab Navigation ---
+  const subtabMy = document.getElementById("tv-subtab-my");
+  const subtabCommunity = document.getElementById("tv-subtab-community");
+  const myStrategiesView = document.getElementById("tv-my-strategies-view");
+  const communityView = document.getElementById("tv-community-view");
+  const builderView = document.getElementById("tv-builder-view");
+  const backtestView = document.getElementById("tv-backtest-view");
+
+  function showStrategiesSubView(viewId) {
+    [myStrategiesView, communityView, builderView, backtestView].forEach(view => {
+      if (view) view.style.display = "none";
+    });
+    if (viewId === "my") {
+      if (myStrategiesView) myStrategiesView.style.display = "block";
+      if (subtabMy) subtabMy.className = "btn small";
+      if (subtabCommunity) subtabCommunity.className = "btn secondary small";
+      renderCustomStrategiesList();
+    } else if (viewId === "community") {
+      if (communityView) communityView.style.display = "block";
+      if (subtabMy) subtabMy.className = "btn secondary small";
+      if (subtabCommunity) subtabCommunity.className = "btn small";
+      fetchCommunityStrategies();
+    } else if (viewId === "builder") {
+      if (builderView) builderView.style.display = "block";
+    } else if (viewId === "backtest") {
+      if (backtestView) backtestView.style.display = "block";
+    }
+  }
+
+  if (subtabMy) subtabMy.addEventListener("click", () => showStrategiesSubView("my"));
+  if (subtabCommunity) subtabCommunity.addEventListener("click", () => showStrategiesSubView("community"));
+
+  // --- Render Strategies List ---
+  function renderCustomStrategiesList() {
+    const listEl = document.getElementById("tv-my-list");
+    if (!listEl) return;
+    listEl.innerHTML = "";
+
+    if (customStrategies.length === 0) {
+      listEl.innerHTML = '<div class="msg">No strategies created yet. Click above to create one!</div>';
+      return;
+    }
+
+    customStrategies.forEach((strat) => {
+      const card = document.createElement("div");
+      card.className = "card tv-strategy-card";
+
+      const statsText = strat.stats
+        ? `Winrate: ${strat.stats.winrate} | Net: ${strat.stats.profit} | Triggers: ${strat.stats.triggers}`
+        : "Winrate: -- | Net: -- | Triggers: --";
+
+      card.innerHTML = `
+        <div class="tv-strategy-header">
+          <span class="tv-strategy-name">${escapeHtml(strat.name)}</span>
+          <span class="tv-strategy-badge">${strat.type}</span>
+        </div>
+        <div class="tv-strategy-desc">${escapeHtml(strat.description || "No description provided.")}</div>
+        <div class="tv-strategy-stats">${statsText}</div>
+        <div class="tv-strategy-actions">
+          <label style="display:flex; align-items:center; gap:4px; font-size:11px; margin-right:auto; cursor:pointer;">
+            <input type="checkbox" class="tv-toggle-enable" data-id="${strat.id}" ${strat.enabled ? "checked" : ""} style="accent-color: var(--accent);" /> Active
+          </label>
+          <button class="btn small tv-backtest-btn" data-id="${strat.id}">Backtest</button>
+          <button class="btn secondary small tv-edit-btn" data-id="${strat.id}">Edit</button>
+          <button class="btn secondary small tv-share-btn" data-id="${strat.id}">Share</button>
+          <button class="btn secondary small tv-delete-btn" data-id="${strat.id}" style="color:#ef4444; border-color:rgba(239,68,68,0.25);">Delete</button>
+        </div>
+      `;
+
+      // Event listeners
+      card.querySelector(".tv-toggle-enable").addEventListener("change", (e) => {
+        strat.enabled = e.target.checked;
+        saveCustomStrategies();
+      });
+
+      card.querySelector(".tv-backtest-btn").addEventListener("click", () => {
+        runStrategyBacktest(strat);
+      });
+
+      card.querySelector(".tv-edit-btn").addEventListener("click", () => {
+        openStrategyBuilder(strat);
+      });
+
+      card.querySelector(".tv-share-btn").addEventListener("click", () => {
+        shareStrategyOnForum(strat);
+      });
+
+      card.querySelector(".tv-delete-btn").addEventListener("click", () => {
+        if (confirm(`Are you sure you want to delete strategy "${strat.name}"?`)) {
+          customStrategies = customStrategies.filter(s => s.id !== strat.id);
+          saveCustomStrategies();
+          renderCustomStrategiesList();
+        }
+      });
+
+      listEl.appendChild(card);
+    });
+  }
+
+  // --- Strategy Builder Form Trigger Handling ---
+  const typeDropdown = document.getElementById("tv-strat-type");
+  const lookbackGroup = document.getElementById("tv-param-lookback-group");
+  const mapEditorGroup = document.getElementById("tv-map-editor-group");
+  const generalTargetsGroup = document.getElementById("tv-general-targets-group");
+
+  if (typeDropdown) {
+    typeDropdown.addEventListener("change", (e) => {
+      const type = e.target.value;
+      if (type === "pref") {
+        lookbackGroup.style.display = "none";
+        mapEditorGroup.style.display = "block";
+        generalTargetsGroup.style.display = "none";
+      } else {
+        lookbackGroup.style.display = "block";
+        mapEditorGroup.style.display = "none";
+        generalTargetsGroup.style.display = "block";
+        // Render general targets grid
+        const targetsSet = new Set(currentBuilderStrategy.targets || []);
+        renderInteractiveGrid(
+          document.getElementById("tv-general-targets-grid"),
+          targetsSet,
+          (num) => {
+            if (targetsSet.has(num)) {
+              targetsSet.delete(num);
+            } else {
+              targetsSet.add(num);
+            }
+            currentBuilderStrategy.targets = Array.from(targetsSet);
+            renderInteractiveGrid(document.getElementById("tv-general-targets-grid"), targetsSet, (n) => {});
+          }
+        );
+      }
+    });
+  }
+
+  // --- Strategy Builder View Operations ---
+  const createBtn = document.getElementById("tv-create-strategy-btn");
+  const cancelBuilderBtn = document.getElementById("tv-cancel-builder-btn");
+  const saveStrategyBtn = document.getElementById("tv-save-strategy-btn");
+
+  if (createBtn) {
+    createBtn.addEventListener("click", () => openStrategyBuilder(null));
+  }
+  if (cancelBuilderBtn) {
+    cancelBuilderBtn.addEventListener("click", () => showStrategiesSubView("my"));
+  }
+  if (saveStrategyBtn) {
+    saveStrategyBtn.addEventListener("click", saveStrategyFromBuilder);
+  }
+
+  function openStrategyBuilder(strat) {
+    currentActiveTriggerNum = null;
+    document.getElementById("tv-map-targets-container").style.display = "none";
+
+    if (strat) {
+      document.getElementById("tv-builder-title").innerText = "Edit Strategy";
+      currentBuilderStrategy = JSON.parse(JSON.stringify(strat)); // deep clone
+    } else {
+      document.getElementById("tv-builder-title").innerText = "Create Strategy";
+      currentBuilderStrategy = {
+        id: "strat_" + Date.now(),
+        name: "",
+        description: "",
+        type: "pref",
+        lookback: 8,
+        targets: [],
+        mapping: {},
+        enabled: true,
+        stats: null
+      };
+    }
+
+    document.getElementById("tv-strat-name").value = currentBuilderStrategy.name || "";
+    document.getElementById("tv-strat-desc").value = currentBuilderStrategy.description || "";
+    document.getElementById("tv-strat-type").value = currentBuilderStrategy.type || "pref";
+    document.getElementById("tv-strat-lookback").value = currentBuilderStrategy.lookback || 8;
+
+    // Fire change event to render appropriate groups
+    typeDropdown.dispatchEvent(new Event("change"));
+
+    // Render builder mapping grids
+    renderBuilderTriggerGrid();
+    showStrategiesSubView("builder");
+  }
+
+  function renderBuilderTriggerGrid() {
+    const triggerGridContainer = document.getElementById("tv-trigger-grid");
+    if (!triggerGridContainer) return;
+
+    const triggerKeys = new Set(Object.keys(currentBuilderStrategy.mapping || {}));
+    renderInteractiveGrid(triggerGridContainer, triggerKeys, (num) => {
+      currentActiveTriggerNum = num;
+      // Show targets grid for this trigger
+      document.getElementById("tv-map-targets-container").style.display = "block";
+      document.getElementById("tv-map-targets-label").innerText = `2. Set targets for trigger number ${num}:`;
+
+      const targetSet = new Set(currentBuilderStrategy.mapping[num] || []);
+      renderInteractiveGrid(
+        document.getElementById("tv-map-targets-grid"),
+        targetSet,
+        (targetNum) => {
+          if (targetSet.has(targetNum)) {
+            targetSet.delete(targetNum);
+          } else {
+            targetSet.add(targetNum);
+          }
+          if (targetSet.size === 0) {
+            delete currentBuilderStrategy.mapping[num];
+          } else {
+            currentBuilderStrategy.mapping[num] = Array.from(targetSet);
+          }
+          renderBuilderTriggerGrid(); // Refresh highlights
+          // Re-render targets grid
+          renderInteractiveGrid(document.getElementById("tv-map-targets-grid"), targetSet, (tn) => {});
+        },
+        num // active trigger styling
+      );
+    }, currentActiveTriggerNum);
+  }
+
+  function saveStrategyFromBuilder() {
+    const name = document.getElementById("tv-strat-name").value.trim();
+    const desc = document.getElementById("tv-strat-desc").value.trim();
+    const type = document.getElementById("tv-strat-type").value;
+    const lookback = parseInt(document.getElementById("tv-strat-lookback").value, 10);
+
+    if (name === "") {
+      alert("Please enter a strategy name.");
+      return;
+    }
+
+    currentBuilderStrategy.name = name;
+    currentBuilderStrategy.description = desc;
+    currentBuilderStrategy.type = type;
+    currentBuilderStrategy.lookback = isNaN(lookback) ? 8 : lookback;
+
+    // Check if strategy exists, update it, otherwise add it
+    const index = customStrategies.findIndex(s => s.id === currentBuilderStrategy.id);
+    if (index !== -1) {
+      customStrategies[index] = currentBuilderStrategy;
+    } else {
+      customStrategies.push(currentBuilderStrategy);
+    }
+
+    saveCustomStrategies();
+    showStrategiesSubView("my");
+  }
+
+  // --- Backtesting Simulator ---
+  const backToListBtn = document.getElementById("tv-back-to-list-btn");
+  if (backToListBtn) {
+    backToListBtn.addEventListener("click", () => showStrategiesSubView("my"));
+  }
+
+  async function runStrategyBacktest(strat) {
+    showStrategiesSubView("backtest");
+    document.getElementById("tv-backtest-title").innerText = `Backtest: ${strat.name}`;
+
+    const winrateEl = document.getElementById("tv-backtest-winrate");
+    const profitEl = document.getElementById("tv-backtest-profit");
+    const triggersEl = document.getElementById("tv-backtest-triggers");
+    const tbody = document.getElementById("tv-backtest-log-body");
+
+    if (winrateEl) winrateEl.innerText = "Simulating...";
+    if (profitEl) profitEl.innerText = "--";
+    if (triggersEl) triggersEl.innerText = "--";
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Scraping table history and running backtest...</td></tr>';
+
+    let spins = [];
+    try {
+      const scraped = await scrapeExtendedHistoryFromActiveTab();
+      spins = scraped.numbers || [];
+    } catch (e) {
+      console.debug("Failed to scrape history for backtest, falling back to dummy", e);
+      for (let i = 0; i < 200; i++) {
+        spins.push(String(Math.floor(Math.random() * 37)));
+      }
+    }
+
+    if (spins.length < 5) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px; color:#ef4444;">Not enough spin history found on roulette tab (minimum 5 spins).</td></tr>';
+      return;
+    }
+
+    const history = spins.map(String);
+    const triggersLog = [];
+    let cumulativeProfit = 0;
+    let winCount = 0;
+    let triggerCount = 0;
+
+    const equityCurve = [0];
+
+    for (let outcomeIndex = history.length - 2; outcomeIndex >= 0; outcomeIndex--) {
+      const outcome = history[outcomeIndex];
+      const context = history.slice(outcomeIndex + 1);
+
+      let triggered = false;
+      let targets = [];
+
+      if (strat.type === "pref") {
+        const lastNum = String(context[0]);
+        if (strat.mapping && strat.mapping[lastNum]) {
+          targets = strat.mapping[lastNum];
+          triggered = targets.length > 0;
+        }
+      } else if (strat.type === "cns") {
+        if (context.length >= 2) {
+          triggered = areConsecutive(context[0], context[1]);
+          targets = triggered ? strat.targets : [];
+        }
+      } else if (strat.type === "rep") {
+        const lookback = strat.lookback || 10;
+        const subHistory = context.slice(0, lookback + 2);
+        for (let i = 0; i < Math.min(subHistory.length - 2, lookback); i++) {
+          if (subHistory[i] === subHistory[i+1] || subHistory[i] === subHistory[i+2]) {
+            triggered = true;
+            break;
+          }
+        }
+        targets = triggered ? strat.targets : [];
+      } else if (strat.type === "zero") {
+        const lookback = strat.lookback || 8;
+        const subHistory = context.slice(0, lookback);
+        const zeroIndex = subHistory.indexOf("0");
+        if (zeroIndex !== -1 && zeroIndex + 1 < context.length) {
+          const prev = String(context[zeroIndex + 1]);
+          const neighbors = getConsecutiveNeighbors(prev);
+          const spunAfterZero = new Set(context.slice(0, zeroIndex).map(String));
+          const hasHit = neighbors.some((n) => spunAfterZero.has(n));
+          if (!hasHit) {
+            triggered = true;
+            targets = strat.targets;
+          }
+        }
+      }
+
+      if (triggered && targets.length > 0) {
+        triggerCount++;
+        const betCost = targets.length;
+        const hit = targets.includes(outcome);
+        let roundProfit = -betCost;
+
+        if (hit) {
+          winCount++;
+          roundProfit = 35 - (betCost - 1);
+        }
+
+        cumulativeProfit += roundProfit;
+        equityCurve.push(cumulativeProfit);
+
+        triggersLog.push({
+          spinNum: history.length - outcomeIndex,
+          triggerSpins: context.slice(0, 3).join(", "),
+          betSize: betCost,
+          winner: outcome,
+          result: roundProfit >= 0 ? `+${roundProfit}` : `${roundProfit}`,
+          hit
+        });
+      }
+    }
+
+    const winrate = triggerCount > 0 ? ((winCount / triggerCount) * 100).toFixed(1) + "%" : "0.0%";
+    strat.stats = {
+      winrate,
+      profit: `${cumulativeProfit >= 0 ? "+" : ""}${cumulativeProfit} units`,
+      triggers: `${winCount}/${triggerCount}`
+    };
+    saveCustomStrategies();
+
+    if (winrateEl) winrateEl.innerText = winrate;
+    if (profitEl) {
+      profitEl.innerText = strat.stats.profit;
+      profitEl.style.color = cumulativeProfit >= 0 ? "var(--accent)" : "#ef4444";
+    }
+    if (triggersEl) triggersEl.innerText = `${winCount} wins / ${triggerCount} bets`;
+
+    drawEquityCurve(equityCurve);
+
+    if (tbody) {
+      tbody.innerHTML = "";
+      if (triggersLog.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Strategy did not trigger in this history series. Try selecting different target numbers or trigger parameters.</td></tr>';
+      } else {
+        triggersLog.reverse().forEach((log) => {
+          const row = document.createElement("tr");
+          row.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+          row.innerHTML = `
+            <td style="padding:4px; font-weight:bold;">#${log.spinNum}</td>
+            <td style="padding:4px; color:var(--text-secondary); max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${log.triggerSpins}</td>
+            <td style="padding:4px; color:var(--text-secondary);">${log.betSize}u</td>
+            <td style="padding:4px; font-weight:bold; color:${getRouletteColorClass(log.winner) === "red" ? "#ef4444" : (getRouletteColorClass(log.winner) === "green" ? "#10b981" : "#fff")}">${log.winner}</td>
+            <td style="padding:4px; font-weight:bold; color:${log.hit ? "var(--accent)" : "#ef4444"}">${log.result}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+    }
+  }
+
+  function drawEquityCurve(data) {
+    const canvas = document.getElementById("tv-equity-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    ctx.scale(2, 2);
+
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for (let x = 30; x < width; x += (width - 40) / 10) {
+      ctx.beginPath();
+      ctx.moveTo(x, 10);
+      ctx.lineTo(x, height - 20);
+      ctx.stroke();
+    }
+    for (let y = 10; y < height - 20; y += (height - 30) / 5) {
+      ctx.beginPath();
+      ctx.moveTo(30, y);
+      ctx.lineTo(width - 10, y);
+      ctx.stroke();
+    }
+
+    if (data.length <= 1) {
+      ctx.fillStyle = "var(--text-secondary)";
+      ctx.font = "11px system-ui";
+      ctx.fillText("No trigger transactions to plot", width/2 - 70, height/2);
+      return;
+    }
+
+    let min = Math.min(...data);
+    let max = Math.max(...data);
+    const diff = max - min;
+    max += diff * 0.1 || 10;
+    min -= diff * 0.1 || 10;
+
+    const marginL = 35;
+    const marginR = 10;
+    const marginT = 15;
+    const marginB = 25;
+
+    const plotW = width - marginL - marginR;
+    const plotH = height - marginT - marginB;
+
+    const getX = (idx) => marginL + (idx / (data.length - 1)) * plotW;
+    const getY = (val) => marginT + plotH - ((val - min) / (max - min)) * plotH;
+
+    if (min < 0 && max > 0) {
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(marginL, getY(0));
+      ctx.lineTo(width - marginR, getY(0));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(getX(0), getY(data[0]));
+    for (let i = 1; i < data.length; i++) {
+      ctx.lineTo(getX(i), getY(data[i]));
+    }
+
+    ctx.strokeStyle = data[data.length - 1] >= 0 ? "#54b435" : "#ef4444";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(getX(0), getY(0));
+    ctx.lineTo(getX(0), getY(data[0]));
+    for (let i = 1; i < data.length; i++) {
+      ctx.lineTo(getX(i), getY(data[i]));
+    }
+    ctx.lineTo(getX(data.length - 1), getY(0));
+    ctx.closePath();
+
+    const gradient = ctx.createLinearGradient(0, marginT, 0, marginT + plotH);
+    if (data[data.length - 1] >= 0) {
+      gradient.addColorStop(0, "rgba(84, 180, 53, 0.2)");
+      gradient.addColorStop(1, "rgba(84, 180, 53, 0.0)");
+    } else {
+      gradient.addColorStop(0, "rgba(239, 68, 68, 0.2)");
+      gradient.addColorStop(1, "rgba(239, 68, 68, 0.0)");
+    }
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.fillStyle = "var(--text-secondary)";
+    ctx.font = "9px system-ui";
+    ctx.fillText(`${max.toFixed(0)}u`, 5, marginT + 3);
+    ctx.fillText(`${((max+min)/2).toFixed(0)}u`, 5, marginT + plotH/2 + 3);
+    ctx.fillText(`${min.toFixed(0)}u`, 5, marginT + plotH + 3);
+
+    ctx.fillText("Oldest", marginL, height - 8);
+    ctx.fillText("Newest Trigger", width - 80, height - 8);
+  }
+
+  // --- Community Library (Forum Integration) ---
+  const communityRefreshBtn = document.getElementById("tv-community-refresh-btn");
+  const communitySortDropdown = document.getElementById("tv-community-sort");
+  const communityLocked = document.getElementById("tv-community-locked");
+  const communityList = document.getElementById("tv-community-list");
+
+  if (communityRefreshBtn) {
+    communityRefreshBtn.addEventListener("click", fetchCommunityStrategies);
+  }
+  if (communitySortDropdown) {
+    communitySortDropdown.addEventListener("change", fetchCommunityStrategies);
+  }
+
+  function checkCommunityAccess() {
+    if (!communityLocked || !communityList) return;
+    if (loggedIn) {
+      communityLocked.style.display = "none";
+      communityList.style.display = "block";
+    } else {
+      communityLocked.style.display = "block";
+      communityList.style.display = "none";
+    }
+  }
+
+  async function fetchCommunityStrategies() {
+    if (!loggedIn) return;
+    if (communityList) {
+      communityList.innerHTML = '<div class="msg">Fetching strategy topics from forum...</div>';
+    }
+
+    try {
+      const res = await api({ action: "forum_list_patterns" });
+      if (!res.success) {
+        communityList.innerHTML = `<div class="msg" style="color:#ef4444;">Forum error: ${escapeHtml(res.msg || res.error)}</div>`;
+        return;
+      }
+
+      let patterns = res.patterns || [];
+      const sort = communitySortDropdown ? communitySortDropdown.value : "newest";
+
+      if (sort === "views") {
+        patterns.sort((a, b) => b.views - a.views);
+      } else if (sort === "replies") {
+        patterns.sort((a, b) => b.replies - a.replies);
+      } else if (sort === "followed") {
+        patterns.sort((a, b) => {
+          const aF = followedCreators.includes(a.author_name) ? 1 : 0;
+          const bF = followedCreators.includes(b.author_name) ? 1 : 0;
+          if (aF !== bF) return bF - aF;
+          return b.topic_id - a.topic_id;
+        });
+      }
+
+      renderCommunityFeed(patterns);
+    } catch (e) {
+      console.error(e);
+      communityList.innerHTML = `<div class="msg" style="color:#ef4444;">API request failed. Check server status.</div>`;
+    }
+  }
+
+  function renderCommunityFeed(patterns) {
+    if (!communityList) return;
+    communityList.innerHTML = "";
+
+    if (patterns.length === 0) {
+      communityList.innerHTML = '<div class="msg">No community strategies found in the forum. Be the first to share one!</div>';
+      return;
+    }
+
+    patterns.forEach((pattern) => {
+      const isFollowing = followedCreators.includes(pattern.author_name);
+      const card = document.createElement("div");
+      card.className = "card tv-strategy-card";
+
+      let targetCountText = "";
+      try {
+        const decoded = JSON.parse(atob(pattern.payload));
+        if (decoded.type === "pref") {
+          const numTriggers = Object.keys(decoded.mapping || {}).length;
+          targetCountText = `${numTriggers} triggers mapped`;
+        } else {
+          targetCountText = `${(decoded.targets || []).length} target numbers`;
+        }
+      } catch (err) {}
+
+      card.innerHTML = `
+        <div class="tv-strategy-header">
+          <span class="tv-strategy-name">${escapeHtml(pattern.name)}</span>
+          <span class="tv-strategy-badge">${targetCountText}</span>
+        </div>
+        <div style="font-size:10px; color:var(--text-secondary); margin-bottom:6px; display:flex; align-items:center;">
+          by <strong>${escapeHtml(pattern.author_name)}</strong>
+          <button class="tv-follow-btn ${isFollowing ? "following" : ""}" data-author="${escapeHtml(pattern.author_name)}">
+            ${isFollowing ? "Following" : "Follow"}
+          </button>
+        </div>
+        <div class="tv-strategy-desc">${escapeHtml(pattern.description)}</div>
+        <div class="tv-strategy-stats">Views: ${pattern.views} | Replies: ${pattern.replies}</div>
+        <div class="tv-strategy-actions">
+          <button class="btn small tv-import-btn">Import & Backtest</button>
+          <button class="btn secondary small tv-thread-btn">View Thread</button>
+        </div>
+      `;
+
+      card.querySelector(".tv-follow-btn").addEventListener("click", (e) => {
+        const author = e.target.dataset.author;
+        if (followedCreators.includes(author)) {
+          followedCreators = followedCreators.filter(c => c !== author);
+          e.target.classList.remove("following");
+          e.target.innerText = "Follow";
+        } else {
+          followedCreators.push(author);
+          e.target.classList.add("following");
+          e.target.innerText = "Following";
+        }
+        saveFollowedCreators();
+      });
+
+      card.querySelector(".tv-import-btn").addEventListener("click", () => {
+        importStrategyFromFeed(pattern);
+      });
+
+      card.querySelector(".tv-thread-btn").addEventListener("click", () => {
+        window.open(`https://zenroulette.com/forum/topic/${pattern.topic_id}/#zr-forum-board`, "_blank");
+      });
+
+      communityList.appendChild(card);
+    });
+  }
+
+  function importStrategyFromFeed(pattern) {
+    try {
+      const decoded = JSON.parse(atob(pattern.payload));
+
+      decoded.id = "strat_" + Date.now();
+      decoded.name = `${pattern.name} (imported)`;
+      decoded.enabled = true;
+
+      customStrategies.push(decoded);
+      saveCustomStrategies();
+
+      alert(`Strategy "${pattern.name}" imported successfully! Running backtest...`);
+      showStrategiesSubView("my");
+      runStrategyBacktest(decoded);
+    } catch (e) {
+      alert("Error: Failed to import strategy payload.");
+    }
+  }
+
+  async function shareStrategyOnForum(strat) {
+    if (!loggedIn) {
+      alert("Please login under the Account tab to share strategies with the community.");
+      return;
+    }
+
+    const description = prompt(`Enter a description for "${strat.name}" to share on the community forum:`);
+    if (description === null) return;
+
+    const shareObj = JSON.parse(JSON.stringify(strat));
+    shareObj.enabled = false;
+    shareObj.stats = null;
+
+    const payload = btoa(JSON.stringify(shareObj));
+
+    try {
+      const res = await api({
+        action: "forum_share_pattern",
+        name: strat.name,
+        description: description || `Custom shared roulette pattern: ${strat.name}`,
+        payload: payload
+      });
+
+      if (res.success) {
+        alert("Strategy shared successfully! It is now live on the forum board.");
+        showStrategiesSubView("community");
+      } else {
+        alert("Failed to share strategy: " + (res.msg || res.error));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("API request failed. Failed to connect to WordPress forum.");
+    }
+  }
+
+  // Active Patterns Actions & Drag-and-Drop
+  function bindPatternActions() {
+    const container = document.getElementById("zrr-patterns-drag-container");
+    if (!container) return;
+
+    // Expand / collapse
+    const items = container.querySelectorAll(".pattern-drag-item");
+    const selectPatternItem = (item) => {
+      if (!item) return;
+      items.forEach(row => row.classList.remove("action-selected"));
+      item.classList.add("action-selected");
+      container.dataset.selectedPattern = item.dataset.pattern || "ZERO";
+    };
+
+    if (!container.dataset.selectedPattern && items.length > 0) {
+      selectPatternItem(items[0]);
+    }
+
+    const getSelectedPattern = () => {
+      const selected = container.querySelector(".pattern-drag-item.action-selected");
+      return (selected && selected.dataset.pattern) || container.dataset.selectedPattern || "ZERO";
+    };
+
+    const getSelectedPatternMeta = () => {
+      const pattern = getSelectedPattern();
+      let name = pattern;
+      let desc = "";
+      let isActive = false;
+
+      if (pattern === "ZERO") {
+        name = "Zero Rule";
+        desc = "Zero rule neighbor protector strategy.";
+        isActive = !!lastPatternChipStatesLt.ZERO;
+      } else if (pattern === "CNS") {
+        name = "Consecutive Neighbors";
+        desc = "Consecutive numbers detected in history.";
+        isActive = !!lastPatternChipStatesLt.CNS;
+      } else if (pattern === "REP") {
+        name = "Repeat Pattern";
+        desc = "Repeat pattern recommendations.";
+        isActive = !!lastPatternChipStatesLt.REP;
+      } else if (pattern === "PREF") {
+        name = "Zen Custom";
+        desc = "Custom preference mapping strategy.";
+        isActive = !!lastPatternChipStatesLt.PREF;
+      } else {
+        desc = "Custom strategy.";
+        isActive = !!lastPatternChipStatesLt[pattern];
+      }
+
+      return { pattern, name, desc, isActive };
+    };
+
+    items.forEach(item => {
+      const title = item.querySelector(".pattern-title-clickable");
+      const chevron = item.querySelector(".pattern-expand-chevron");
+      const desc = item.querySelector(".pattern-description-expanded");
+
+      item.addEventListener("click", () => {
+        selectPatternItem(item);
+      });
+
+      const toggleExpand = () => {
+        const isHidden = desc.style.display === "none" || desc.style.display === "";
+        desc.style.display = isHidden ? "block" : "none";
+        if (chevron) {
+          chevron.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
+        }
+      };
+
+      if (title) {
+        title.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleExpand();
+        });
+      }
+      if (chevron) {
+        chevron.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleExpand();
+        });
+      }
+    });
+
+    const footerDownloadBtn = document.getElementById("zrr-pattern-download-btn");
+    const footerImportBtn = document.getElementById("zrr-pattern-import-btn");
+    const footerShareBtn = document.getElementById("zrr-pattern-share-btn");
+    const footerAiBtn = document.getElementById("zrr-pattern-ai-btn");
+
+    if (footerDownloadBtn) {
+      footerDownloadBtn.addEventListener("click", () => downloadPatternConfig(getSelectedPattern()));
+    }
+    if (footerImportBtn) {
+      footerImportBtn.addEventListener("click", () => triggerPatternImport(getSelectedPattern()));
+    }
+    if (footerShareBtn) {
+      footerShareBtn.addEventListener("click", () => sharePatternConfig(getSelectedPattern()));
+    }
+    if (footerAiBtn) {
+      footerAiBtn.addEventListener("click", () => {
+        const meta = getSelectedPatternMeta();
+        askGeminiForPatternExplanation(meta.pattern, meta.name, meta.desc, meta.isActive);
+      });
+    }
+
+    // Import file input listener
+    const importFileInput = document.getElementById("zrr-pattern-import-file");
+    if (importFileInput) {
+      importFileInput.onchange = handlePatternFileImport;
+    }
+  }
+
+  function initPatternDragAndDrop() {
+    const container = document.getElementById("zrr-patterns-drag-container");
+    if (!container) return;
+
+    let draggingPatternElement = null;
+    const items = container.querySelectorAll(".pattern-drag-item");
+
+    items.forEach(item => {
+      item.addEventListener("dragstart", (e) => {
+        draggingPatternElement = item;
+        item.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      item.addEventListener("dragend", () => {
+        draggingPatternElement = null;
+        item.classList.remove("dragging");
+        items.forEach(c => c.classList.remove("drag-over"));
+        savePatternOrder();
+      });
+
+      item.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (draggingPatternElement && item !== draggingPatternElement) {
+          item.classList.add("drag-over");
+        }
+      });
+
+      item.addEventListener("dragleave", () => {
+        item.classList.remove("drag-over");
+      });
+
+      item.addEventListener("drop", (e) => {
+        e.preventDefault();
+        item.classList.remove("drag-over");
+
+        if (draggingPatternElement && item !== draggingPatternElement) {
+          const allItems = Array.from(container.querySelectorAll(".pattern-drag-item"));
+          const draggingIdx = allItems.indexOf(draggingPatternElement);
+          const targetIdx = allItems.indexOf(item);
+
+          if (draggingIdx < targetIdx) {
+            container.insertBefore(draggingPatternElement, item.nextSibling);
+          } else {
+            container.insertBefore(draggingPatternElement, item);
+          }
+          savePatternOrder();
+        }
+      });
+    });
+  }
+
+  function savePatternOrder() {
+    const container = document.getElementById("zrr-patterns-drag-container");
+    if (!container) return;
+    const items = Array.from(container.querySelectorAll(".pattern-drag-item"));
+    const order = items.map(item => item.dataset.pattern);
+    patternOrderLt = order;
+    chrome.storage.local.set({ patternOrderLt: order }, () => {
+      chrome.runtime.sendMessage({ type: "update-pattern-order", order: order });
+    });
+  }
+
+  function downloadPatternConfig(patternType) {
+    let name = "";
+    let desc = "";
+    let stratObj = {};
+
+    if (patternType === "ZERO") {
+      name = "Zero Guard Pattern";
+      desc = "Zero rule neighbor protector strategy.";
+      stratObj = {
+        id: "strat_zero_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "zero",
+        lookback: 8,
+        targets: ["26", "32", "15", "35", "3", "26", "0"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "REP") {
+      name = "Zen Repeat Trigger";
+      desc = "Plays the repeat numbers when a repeat occurs in the last 10 spins.";
+      stratObj = {
+        id: "strat_rep_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "rep",
+        lookback: 10,
+        targets: ["0", "2", "4", "15", "19", "21", "25", "32"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "CNS") {
+      name = "Zen Consecutive Trigger";
+      desc = "Plays consecutive neighbors when consecutive numbers are spun.";
+      stratObj = {
+        id: "strat_cns_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "cns",
+        lookback: 8,
+        targets: ["0", "2", "15", "26", "32", "35"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "PREF") {
+      name = "Zen Custom";
+      desc = "Plays custom targets based on last spin mapping.";
+      stratObj = {
+        id: "strat_pref_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "pref",
+        lookback: 8,
+        targets: [],
+        mapping: customPrefMappingLt || {},
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    }
+
+    const exportWrapper = {
+      version: "1.0",
+      type: "strategy",
+      patternType: patternType,
+      strategy: stratObj
+    };
+
+    const blob = new Blob([JSON.stringify(exportWrapper, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `zra_strategy_${patternType.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  let currentImportingPatternType = null;
+  function triggerPatternImport(patternType) {
+    currentImportingPatternType = patternType;
+    const fileInput = document.getElementById("zrr-pattern-import-file");
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
+  function handlePatternFileImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (!data || typeof data !== "object") {
+          alert("Error: Invalid JSON file.");
+          return;
+        }
+
+        let strategy = data.strategy || data;
+        let pType = data.patternType || currentImportingPatternType || (strategy ? strategy.type : null);
+
+        if (!strategy || typeof strategy !== "object") {
+          alert("Error: Invalid strategy structure.");
+          return;
+        }
+
+        if (pType && String(pType).toUpperCase() === "PREF") {
+          if (strategy.mapping && typeof strategy.mapping === "object") {
+            customPrefMappingLt = Object.assign({}, strategy.mapping);
+            chrome.storage.local.set({ customPrefMappingLt: customPrefMappingLt }, () => {
+              populatePrefDropdownAndInputs();
+              alert("Custom Preference Mapping imported successfully!");
+            });
+          } else {
+            alert("Error: No mapping found in the imported Preference strategy.");
+          }
+        } else {
+          strategy.id = "strat_" + Date.now();
+          if (!strategy.name) {
+            strategy.name = "Imported Strategy";
+          }
+          if (typeof strategy.enabled === "undefined") {
+            strategy.enabled = true;
+          }
+          if (!strategy.stats) {
+            strategy.stats = { winrate: "0.0%", profit: "0 units", triggers: "0/0" };
+          }
+          customStrategies.push(strategy);
+          saveCustomStrategies();
+          alert(`Strategy "${strategy.name}" imported to your custom strategies list!`);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error parsing import file.");
+      } finally {
+        e.target.value = "";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function sharePatternConfig(patternType) {
+    let name = "";
+    let desc = "";
+    let stratObj = {};
+
+    if (patternType === "ZERO") {
+      name = "Zero Guard Pattern";
+      desc = "Zero rule neighbor protector strategy.";
+      stratObj = {
+        id: "strat_zero_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "zero",
+        lookback: 8,
+        targets: ["26", "32", "15", "35", "3", "26", "0"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "REP") {
+      name = "Zen Repeat Trigger";
+      desc = "Plays the repeat numbers when a repeat occurs in the last 10 spins.";
+      stratObj = {
+        id: "strat_rep_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "rep",
+        lookback: 10,
+        targets: ["0", "2", "4", "15", "19", "21", "25", "32"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "CNS") {
+      name = "Zen Consecutive Trigger";
+      desc = "Plays consecutive neighbors when consecutive numbers are spun.";
+      stratObj = {
+        id: "strat_cns_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "cns",
+        lookback: 8,
+        targets: ["0", "2", "15", "26", "32", "35"],
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    } else if (patternType === "PREF") {
+      name = "Zen Custom";
+      desc = "Plays custom targets based on last spin mapping.";
+      stratObj = {
+        id: "strat_pref_" + Date.now(),
+        name: name,
+        description: desc,
+        type: "pref",
+        lookback: 8,
+        targets: [],
+        mapping: customPrefMappingLt || {},
+        enabled: true,
+        stats: { winrate: "0.0%", profit: "0 units", triggers: "0/0" }
+      };
+    }
+
+    shareStrategyOnForum(stratObj);
+  }
+
   function initializePanel() {
     if (panelInitialized) {
       return;
     }
     panelInitialized = true;
     initLayout();
+    loadCustomStrategies();
   }
 
   if (document.readyState === "loading") {

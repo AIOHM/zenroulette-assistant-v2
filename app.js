@@ -228,6 +228,7 @@ let persistentJackpotsLt = [];
 let lastWinnerForJackpotsLt = null;
 let lastCnsHitWinnerLt = null;
 let lastObservedTableType = "UNKNOWN";
+let patternOrderLt = ["ZERO", "PREF", "CNS", "REP"];
 
 const defaultPrefMappingLt = {
   "0": ["10"], "1": ["3"], "2": ["11"], "3": ["1", "21"], "4": ["10"], "5": ["8"], "6": ["36"],
@@ -1338,8 +1339,7 @@ function getOverlapScoresFromLast4(recentNumbers) {
   return overlapCounts;
 }
 
-let persistentJackpots = []; // Array of { number: "18", remainingRounds: 4 }
-let lastWinnerForJackpots = null;
+
 
 function isJackpotActiveInGolden(jpNumber, goldenRings, wheelOrder) {
   if (goldenRings.includes(String(jpNumber))) {
@@ -1696,9 +1696,10 @@ async function updateDashboardInstant() {
   let enabledPatternsLt = { zero: true, rep: true, cns: true, pref: true };
   let customPrefMappingLt = {};
   try {
-    const res = await chrome.storage.local.get(["enabledPatternsLt", "customPrefMappingLt"]);
+    const res = await chrome.storage.local.get(["enabledPatternsLt", "customPrefMappingLt", "patternOrderLt"]);
     if (res.enabledPatternsLt) enabledPatternsLt = res.enabledPatternsLt;
     if (res.customPrefMappingLt) customPrefMappingLt = res.customPrefMappingLt;
+    if (res.patternOrderLt) patternOrderLt = res.patternOrderLt;
   } catch (_e) {}
 
   const lastNum = String(recentNumbers[0]);
@@ -1723,7 +1724,8 @@ async function updateDashboardInstant() {
       preferenceNumbers: preferenceNumbers.join(","),
       enabledPatterns: JSON.stringify(enabledPatternsLt),
       engineState: JSON.stringify(engineState),
-      wheelOrder: WHEEL_ORDER.join(",")
+      wheelOrder: WHEEL_ORDER.join(","),
+      patternOrder: JSON.stringify(patternOrderLt)
     }
   }, (msg) => {
     if (!msg || msg.success !== true) {
@@ -2179,6 +2181,16 @@ function handleRuntimeMessage(request) {
 
   if (request.type === "manual-bet") {
     applyManualBet(request.number, request.neighborhoodSize);
+  }
+
+  if (request.type === "update-pattern-order") {
+    patternOrderLt = request.order;
+    updateDashboardInstant();
+  }
+
+  if (request.type === "update-pattern-settings") {
+    enabledPatternsLt = request.enabledPatternsLt;
+    updateDashboardInstant();
   }
 }
 

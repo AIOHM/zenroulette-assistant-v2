@@ -1,90 +1,168 @@
-# ZenRoulette Assistant
+# ZenRoulette Assistant v2
 
-Professional Chrome side-panel assistant for roulette session tracking, pattern review, and disciplined decision support.
+Chrome side-panel assistant for roulette session tracking, live pattern review, and disciplined decision support.
 
-## About
+ZenRoulette Assistant reads recent roulette outcomes from the active table page and turns them into a focused side-panel workspace. It helps players observe patterns, test strategy ideas, keep session context, export reports, and stay inside a repeatable process instead of reacting emotionally to each spin.
 
-ZenRoulette Assistant is a Chrome side-panel extension for roulette session awareness, pattern tracking, and disciplined play review. It reads live roulette history from the active table page and presents it inside a focused Chrome side panel.
+Roulette is still a game of chance. This extension is an analysis, learning, and discipline tool. It does not guarantee profit, predict future outcomes, or remove gambling risk.
 
-The assistant watches recent roulette outcomes, highlights configured pattern families, and helps the player keep decisions structured instead of emotional. It is designed as a companion for learning, logging, and visualizing repeatable table behavior.
+## Highlights
 
-Roulette remains a game of chance. This project is an analysis, education, and discipline tool. It does not guarantee winnings or predict outcomes. Use it only where permitted by local rules and platform terms.
+- Chrome Manifest V3 side-panel interface.
+- Live roulette history extraction from supported table pages and embedded game frames.
+- Lightning and Dealer workspaces with wheel visualization, pattern chips, jackpot groups, and strategy panels.
+- Session dashboard with dealer/table context, play log, stats, and recording controls.
+- Pattern Pre-Check reports with JSON/CSV export.
+- Active Pattern controls for Zero Guard, Consecutive Neighbor, Repeat, and Preference patterns.
+- Import/export for layouts, preference maps, pattern configs, and session data.
+- TradingView-style strategy builder with custom strategies, backtesting, and community sharing.
+- Optional Gemini assistant integration using a user-provided API key stored in local Chrome extension storage.
+- ZenRoulette account login and 24-hour license request/activation flow.
 
-![ZenRoulette Assistant Lightning tab](docs/screenshots/lightning.jpg)
+## Current Version
 
-## What It Does
+`2.1.6`
 
-ZenRoulette Assistant reads live roulette history from the active table page and presents it inside a focused Chrome side panel. It helps you follow repeatable rules, watch pattern families, keep session notes, and request a temporary license from your account.
-
-Core modules:
-
-- **Lightning Wheel**: recent numbers, PT pattern chips, JP candidates, and wheel visualization.
-- **Dealer Strategy**: recommendation panel, bet groups, jackpot groups, and table context.
-- **Session**: dealer info, play log, stats, and Pattern Pre-Check history scan.
-- **TradingView of Roulette**: personal strategy workspace and community strategy feed.
-- **Account**: login, free Tribe access, license request, and license activation.
-
-Roulette remains a game of chance. This project is an analysis, education, and discipline tool. It does not guarantee winnings or predict outcomes.
-
-## Screenshots
-
-| Lightning | Dealer |
-| --- | --- |
-| ![Lightning tab](docs/screenshots/lightning.jpg) | ![Dealer tab](docs/screenshots/dealer.jpg) |
-
-| Session | Strategies |
-| --- | --- |
-| ![Session tab](docs/screenshots/session.jpg) | ![Strategies tab](docs/screenshots/strategies.jpg) |
-
-| Account |
-| --- |
-| ![Account tab](docs/screenshots/account.jpg) |
+See [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md) for recent changes.
 
 ## Download
 
-Stable public download:
+Stable public ZIP:
 
 https://zenroulette.com/get/extension/
 
-Versioned releases are also published with Git tags in this repository.
+This repository contains the unpacked extension source. Versioned release bundles may also be published as GitHub tags.
 
-Current version: **2.1.6**
+## Install From ZIP
 
-## Install From the ZIP
-
-1. Download `ZenRoulette-Assistant-v2.zip` from the public download link.
-2. Unzip the file on your computer.
-3. Open Chrome and go to `chrome://extensions/`.
+1. Download the stable ZIP from the link above.
+2. Unzip it on your computer.
+3. Open Chrome and visit `chrome://extensions/`.
 4. Enable **Developer mode**.
 5. Click **Load unpacked**.
 6. Select the unzipped `ZenRoulette Assistant` folder.
-7. Pin the extension and open it from the Chrome toolbar or side panel.
+7. Pin the extension, open a roulette table, then open the extension from the Chrome toolbar or side panel.
 
-## Join the Tribe for Free
+## Install From Source
 
-1. Visit https://zenroulette.com.
-2. Create or log in to your free account.
-3. Open the **Account** tab inside the extension.
-4. Sign in with your ZenRoulette account email.
-5. Use the Tribe resources, tutorials, and community updates from the website.
+```bash
+git clone https://github.com/AIOHM/zenroulette-assistant-v2.git
+cd zenroulette-assistant-v2
+```
 
-## Request a 24-Hour License
+Then load the repository folder through `chrome://extensions/` using **Load unpacked**.
 
-1. Open the extension.
-2. Go to the **Account** tab.
-3. Enter the same email used for your ZenRoulette account.
-4. Click **Request** in the License section.
-5. Check your email for the license code.
-6. Paste the code into **Long License Code** and click **Activate License**.
+No build step is required for the current source package.
 
-During promotional windows, eligible accounts may receive one automatic 24-hour license per email within a 24-hour period.
+## Main Workspaces
+
+### Lightning
+
+Fast roulette workspace for recent outcomes, Lightning-specific pattern families, active pattern chips, jackpot candidates, golden overlaps, and exit-strategy math.
+
+### Dealer
+
+Standard dealer strategy workspace with wheel telemetry, bet groups, jackpot groups, recommendation state, and table context.
+
+### Session
+
+Session control center for starting/stopping a play session, recording table data, reviewing stats, and exporting logs.
+
+### TradingView of Roulette
+
+Strategy workspace for creating custom pattern rules, backtesting against scraped history, saving strategy presets, following community creators, and sharing patterns to the ZenRoulette forum.
+
+### Account
+
+Login, membership state, device-bound license status, 24-hour license request, and long license-code activation.
+
+## Project Structure
+
+```text
+.
+├── manifest.json       # Chrome extension manifest
+├── popup.html          # Side-panel UI, styles, and tab markup
+├── top.js              # Main side-panel logic and UI orchestration
+├── background.js       # Service worker, API relay, tab targeting, exports
+├── app.js              # Content script for roulette table/history extraction
+├── main-world.js       # Main-world event/frame helper script
+├── strategy-core.js    # Public placeholder; protected calculations run server-side
+├── icons/              # Extension icons
+├── ABOUT.md            # Short project overview
+├── CHANGELOG.md        # Version history
+└── RELEASE_NOTES.md    # Current release notes
+```
+
+## Permissions
+
+The extension uses these Chrome permissions:
+
+- `storage`: save account state, layouts, strategy settings, Gemini key, and local license state.
+- `scripting`: inject helpers into active roulette tabs/frames.
+- `tabs` and `webNavigation`: find the relevant roulette tab and communicate with embedded frames.
+- `downloads`: export CSV/JSON reports and configuration files.
+- `sidePanel`: open the assistant as a Chrome side panel.
+- `tabCapture`: reserved for session capture/recording workflows.
+- `host_permissions` for `http://*/*` and `https://*/*`: required because supported roulette tables are often nested inside third-party game frames and changing casino hostnames.
+
+## API And License Flow
+
+The background service worker relays public and authenticated requests to the ZenRoulette API:
+
+- `https://zenroulette.com/api/index.php`
+- `https://www.zenroulette.com/api/index.php`
+- `https://zenroulette.com.local/api/index.php` for local development fallback
+
+Public license actions include:
+
+- `license_request`
+- `license_activate`
+- `license_status`
+
+Authenticated account and community actions use the saved security token after login.
+
+## Development Checks
+
+There is no bundled test runner in this source package yet. Before packaging a release, run syntax checks on the JavaScript entry points:
+
+```bash
+node --check app.js
+node --check background.js
+node --check main-world.js
+node --check top.js
+```
+
+Then load the unpacked extension in Chrome and verify:
+
+- the side panel opens from the toolbar action,
+- Account login and license status render correctly,
+- Lightning and Dealer tabs unlock for a valid account/license,
+- recent numbers update on a supported roulette table,
+- pattern reports and session exports download successfully,
+- custom strategies can be created, backtested, exported, and reloaded.
+
+## Packaging
+
+The release ZIP should contain the extension files at the archive root, including `manifest.json`, scripts, `popup.html`, and `icons/`.
+
+Do not include local secrets, browser profile data, test exports, or private API materials in the release package.
 
 ## Security Notes
 
-- No API keys, license codes, passwords, or private tokens should be committed.
-- User-entered Gemini API keys stay in local extension storage.
-- The extension talks to the ZenRoulette API for login and license checks.
+- Never commit API keys, license codes, private tokens, or customer data.
+- Gemini API keys are user-provided and stored locally through `chrome.storage.local`.
+- Core proprietary strategy calculations are intentionally kept server-side.
 - Report sensitive issues privately to the ZenRoulette maintainer.
+
+## Responsible Use
+
+ZenRoulette Assistant is built for observation, journaling, structured review, and discipline. It should not be treated as financial advice, gambling advice, or a promise of winning outcomes. Use it only where online roulette tools are legal and allowed by the platform you are using.
+
+## Community
+
+Join the free ZenRoulette Tribe for tutorials, release updates, and strategy discussion:
+
+https://zenroulette.com
 
 ## License
 
